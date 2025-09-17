@@ -1,6 +1,6 @@
 // <copyright file="IssueReportUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -16,11 +16,11 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Windows;
 using HandyControl.Controls;
 using HandyControl.Data;
-using MaaWpfGui.Configuration;
+using JetBrains.Annotations;
+using MaaWpfGui.Configuration.Factory;
+using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Main;
 using Serilog;
@@ -39,14 +39,12 @@ public class IssueReportUserControlModel : PropertyChangedBase
     }
 
     private static readonly string[] _payloadFileNames = [
-        Bootstrapper.UiLogFilename,
-        Bootstrapper.UiLogBakFilename,
-        Bootstrapper.CoreLogFilename,
-        Bootstrapper.CoreLogBakFilename,
-        ConfigurationHelper.ConfigurationFile,
-        ConfigFactory.ConfigFileName];
-
-    private const string DebugDir = "debug";
+        Bootstrapper.UiLogFile,
+        Bootstrapper.UiLogBakFile,
+        Bootstrapper.CoreLogFile,
+        Bootstrapper.CoreLogBakFile,
+        ConfigurationHelper.ConfigFile,
+        ConfigFactory.ConfigFile];
 
     public static IssueReportUserControlModel Instance { get; }
 
@@ -54,12 +52,12 @@ public class IssueReportUserControlModel : PropertyChangedBase
     {
         try
         {
-            if (!Directory.Exists(DebugDir))
+            if (!Directory.Exists(PathsHelper.DebugDir))
             {
-                Directory.CreateDirectory(DebugDir);
+                Directory.CreateDirectory(PathsHelper.DebugDir);
             }
 
-            Process.Start("explorer.exe", DebugDir);
+            Process.Start("explorer.exe", PathsHelper.DebugDir);
         }
         catch (Exception ex)
         {
@@ -73,7 +71,7 @@ public class IssueReportUserControlModel : PropertyChangedBase
         try
         {
             var reportFileName = $"report_{DateTimeOffset.Now:MM-dd_HH-mm-ss}.zip";
-            string zipPath = Path.Combine(DebugDir, reportFileName);
+            string zipPath = Path.Combine(PathsHelper.DebugDir, reportFileName);
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             string debugTempPath = Path.Combine(tempPath, "debug");
             string resourceTempPath = Path.Combine(tempPath, "resource");
@@ -94,7 +92,7 @@ public class IssueReportUserControlModel : PropertyChangedBase
                     continue;
                 }
 
-                string relativePath = Path.GetRelativePath(Environment.CurrentDirectory, file);
+                string relativePath = Path.GetRelativePath(PathsHelper.BaseDir, file);
                 string dest = Path.Combine(tempPath, relativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 File.Copy(file, dest, overwrite: true);
@@ -113,13 +111,26 @@ public class IssueReportUserControlModel : PropertyChangedBase
                 }
             }
 
+            // 遍历 cache 文件夹下的文件，复制到 tempPath/cache
+            string cacheResourceDir = PathsHelper.CacheDir;
+            if (Directory.Exists(cacheResourceDir))
+            {
+                foreach (var file in Directory.EnumerateFiles(cacheResourceDir, "*", SearchOption.AllDirectories))
+                {
+                    string relativePath = Path.GetRelativePath(cacheResourceDir, file);
+                    string dest = Path.Combine(tempPath, "cache", relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    File.Copy(file, dest, overwrite: true);
+                }
+            }
+
             using (FileStream zipToOpen = new FileStream(zipPath, FileMode.Create))
             {
                 using var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create);
                 foreach (var file in Directory.EnumerateFiles(tempPath, "*", SearchOption.AllDirectories))
                 {
                     string entryName = Path.GetRelativePath(tempPath, file);
-                    archive.CreateEntryFromFile(file, entryName, CompressionLevel.Optimal);
+                    archive.CreateEntryFromFile(file, entryName, CompressionLevel.SmallestSize);
                 }
             }
 
@@ -135,9 +146,11 @@ public class IssueReportUserControlModel : PropertyChangedBase
     }
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void SetAcknowledgedNightlyWarning()
     {
+        // 其实不应该放这里，但懒得写一个新的方法，就塞到这里了
+        AchievementTrackerHelper.Instance.Unlock(AchievementIds.ProblemFeedback);
         VersionUpdateSettingsUserControlModel.Instance.HasAcknowledgedNightlyWarning = true;
     }
 

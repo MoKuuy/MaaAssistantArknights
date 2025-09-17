@@ -1,6 +1,6 @@
 // <copyright file="StageManager.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 
 using System;
@@ -17,11 +18,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using HandyControl.Controls;
 using HandyControl.Data;
-using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Models;
 using MaaWpfGui.Utilities.ValueType;
@@ -63,15 +62,28 @@ namespace MaaWpfGui.Services
 
         public async Task UpdateStageWeb()
         {
-            if (!await CheckWebUpdate())
+            // 清理旧的缓存文件
+            string cacheAllFileDownloadComplete = PathsHelper.CacheDir + "allFileDownloadComplete.json";
+            string lastUpdateTime = PathsHelper.CacheDir + "LastUpdateTime.json";
+            string stageAndTasksUpdateTime = PathsHelper.CacheDir + "stageAndTasksUpdateTime.json";
+            var filesToClean = new[] { cacheAllFileDownloadComplete, lastUpdateTime, stageAndTasksUpdateTime };
+
+            foreach (var file in filesToClean)
             {
-                return;
+                try
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
             }
 
-            const string FilePath = "cache/allFileDownloadComplete.json";
-            await File.WriteAllTextAsync(FilePath, GenerateJsonString(false));
             MergePermanentAndActivityStages(await LoadWebStages());
-            await File.WriteAllTextAsync(FilePath, GenerateJsonString(true));
 
             _ = Execute.OnUIThreadAsync(() =>
             {
@@ -84,17 +96,6 @@ namespace MaaWpfGui.Services
                 };
                 Growl.Info(growlInfo);
             });
-
-            return;
-
-            static string GenerateJsonString(bool allFileDownloadComplete)
-            {
-                JObject json = new JObject
-                {
-                    ["allFileDownloadComplete"] = allFileDownloadComplete,
-                };
-                return JsonConvert.SerializeObject(json);
-            }
         }
 
         private static string GetClientType()
@@ -116,6 +117,7 @@ namespace MaaWpfGui.Services
             return activity;
         }
 
+        /*
         private static async Task<bool> CheckWebUpdate()
         {
             // Check if we need to update from the web
@@ -135,6 +137,7 @@ namespace MaaWpfGui.Services
             bool allFileDownloadComplete = allFileDownloadCompleteJson?["allFileDownloadComplete"]?.ToObject<bool>() ?? false;
             return webTimestamp > localTimestamp || !allFileDownloadComplete;
         }
+        */
 
         private static async Task<JObject> LoadWebStages()
         {
@@ -147,7 +150,6 @@ namespace MaaWpfGui.Services
 
             JObject activity = await activityTask;
             JObject tasksJson = await tasksTask;
-
             if (clientType != "Official" && tasksJson != null)
             {
                 var tasksPath = "resource/global/" + clientType + '/' + TasksApi;
@@ -179,7 +181,7 @@ namespace MaaWpfGui.Services
             //    SemVersionStyles.AllowLowerV, out var curResourceVersionObj);
             var resourceCollection = InitializeResourceCollection(activity?[clientType]?["resourceCollection"]);
 
-            if (activity?[clientType] != null)
+            if (activity?[clientType] != null && (isDebugVersion || (curVerParsed && curVersionObj != null)))
             {
                 ParseActivityStages(activity[clientType], tempStage, curVerParsed, curVersionObj, isDebugVersion);
             }
@@ -192,11 +194,18 @@ namespace MaaWpfGui.Services
         private static Dictionary<string, StageInfo> InitializeDefaultStages()
         {
             // 这里会被 “剩余理智” 复用，第一个必须是 string.Empty 的
-            // 「当前/上次」关卡导航
-            return new() { { string.Empty, new() { Display = LocalizationHelper.GetString("DefaultStage"), Value = string.Empty } } };
+            return new()
+            {
+                // 「当前/上次」关卡导航
+                { string.Empty, new() { Display = LocalizationHelper.GetString("DefaultStage"), Value = string.Empty } },
+
+                // 周一和周日的关卡提示
+                { "Pormpt1", new() { Tip = LocalizationHelper.GetString("Pormpt1"), OpenDays = [DayOfWeek.Monday], IsHidden = true } },
+                { "Pormpt2", new() { Tip = LocalizationHelper.GetString("Pormpt2"), OpenDays = [DayOfWeek.Sunday], IsHidden = true } },
+            };
         }
 
-        private static bool TryParseVersion(string? version, out SemVersion versionObj)
+        private static bool TryParseVersion(string? version, out SemVersion? versionObj)
         {
             return SemVersion.TryParse(version, SemVersionStyles.AllowLowerV, out versionObj);
         }
@@ -224,7 +233,7 @@ namespace MaaWpfGui.Services
             };
         }
 
-        private static void ParseActivityStages(JToken? clientData, Dictionary<string, StageInfo> tempStage, bool curVerParsed, SemVersion curVersionObj, bool isDebugVersion)
+        private static void ParseActivityStages(JToken? clientData, Dictionary<string, StageInfo> tempStage, bool curVerParsed, SemVersion? curVersionObj, bool isDebugVersion)
         {
             try
             {
@@ -235,7 +244,7 @@ namespace MaaWpfGui.Services
                         continue;
                     }
 
-                    bool unsupportedStages = !isDebugVersion && curVerParsed && curVersionObj.CompareSortOrderTo(minRequiredObj) < 0;
+                    bool unsupportedStages = !isDebugVersion && curVerParsed && curVersionObj!.CompareSortOrderTo(minRequiredObj) < 0;
 
                     var stageInfo = CreateStageInfo(stageObj, unsupportedStages, minRequiredObj);
                     tempStage.TryAdd(stageInfo.Display, stageInfo);
@@ -287,7 +296,7 @@ namespace MaaWpfGui.Services
                 { "SK-5", new("SK-5", "SKTip", [DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday, DayOfWeek.Saturday], resourceCollection) },
 
                 // 剿灭模式
-                { "Annihilation", new() { Display = LocalizationHelper.GetString("Annihilation"), Value = "Annihilation" } },
+                { "Annihilation", new() { Display = LocalizationHelper.GetString("AnnihilationMode"), Value = "Annihilation" } },
 
                 // 芯片本
                 { "PR-A-1", new("PR-A-1", "PR-ATip", [DayOfWeek.Monday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Sunday], resourceCollection) },
@@ -298,10 +307,6 @@ namespace MaaWpfGui.Services
                 { "PR-C-2", new("PR-C-2", string.Empty, [DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Saturday, DayOfWeek.Sunday], resourceCollection) },
                 { "PR-D-1", new("PR-D-1", "PR-DTip", [DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Saturday, DayOfWeek.Sunday], resourceCollection) },
                 { "PR-D-2", new("PR-D-2", string.Empty, [DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Saturday, DayOfWeek.Sunday], resourceCollection) },
-
-                // 周一和周日的关卡提示
-                { "Pormpt1", new() { Tip = LocalizationHelper.GetString("Pormpt1"), OpenDays = [DayOfWeek.Monday], IsHidden = true } },
-                { "Pormpt2", new() { Tip = LocalizationHelper.GetString("Pormpt2"), OpenDays = [DayOfWeek.Sunday], IsHidden = true } },
             };
 
             foreach (var kvp in permanentStages)
@@ -359,34 +364,55 @@ namespace MaaWpfGui.Services
         /// <returns>Open stages</returns>
         public string GetStageTips(DayOfWeek dayOfWeek)
         {
-            var builder = new StringBuilder();
-            var sideStoryFlags = new Dictionary<string, bool>();
-            foreach (var item in _stages.Where(item => item.Value.IsStageOpen(dayOfWeek)))
+            var lines = new List<string>();
+            var shownSideStories = new HashSet<string>();
+            bool resourceTipShown = false;
+            DateTime now = DateTime.UtcNow;
+
+            foreach (var stage in _stages.Values.Where(s => s.IsStageOpen(dayOfWeek)))
             {
-                if (!string.IsNullOrEmpty(item.Value.Activity?.StageName)
-                    && !sideStoryFlags.ContainsKey(item.Value.Activity.StageName))
+                var activity = stage.Activity;
+
+                // Resource collection tip - only show one
+                if (!resourceTipShown && activity is { IsResourceCollection: true, BeingOpen: true })
                 {
-                    DateTime dateTime = DateTime.UtcNow;
-                    var daysLeftOpen = (item.Value.Activity.UtcExpireTime - dateTime).Days;
-                    builder.AppendLine(item.Value.Activity.StageName
-                        + " "
-                        + LocalizationHelper.GetString("DaysLeftOpen")
-                        + (daysLeftOpen > 0 ? daysLeftOpen.ToString() : LocalizationHelper.GetString("LessThanOneDay")));
-                    sideStoryFlags[item.Value.Activity.StageName] = true;
+                    // 插入到第一行
+                    lines.Insert(0, $"｢{activity.Tip}｣ {LocalizationHelper.GetString("DaysLeftOpen")}{GetDaysLeftText(activity.UtcExpireTime, now)}");
+                    resourceTipShown = true;
                 }
 
-                if (!string.IsNullOrEmpty(item.Value.Tip))
+                // Side story tips
+                if (!string.IsNullOrEmpty(activity?.StageName) && shownSideStories.Add(activity.StageName))
                 {
-                    builder.AppendLine(item.Value.Tip);
+                    lines.Add($"｢{activity.StageName}｣ {LocalizationHelper.GetString("DaysLeftOpen")}{GetDaysLeftText(activity.UtcExpireTime, now)}");
                 }
 
-                if (!string.IsNullOrEmpty(item.Value.Drop))
+                // Side story Drop item tips
+                if (!string.IsNullOrEmpty(stage.Drop))
                 {
-                    builder.AppendLine(item.Value.Display + ": " + ItemListHelper.GetItemName(item.Value.Drop));
+                    lines.Add($"{stage.Value}: {ItemListHelper.GetItemName(stage.Drop)}");
+                }
+
+                // Normal stage tips
+                if (!string.IsNullOrEmpty(stage.Tip))
+                {
+                    lines.Add(stage.Tip);
                 }
             }
 
-            return builder.ToString();
+            return lines.Count > 0 ? string.Join(Environment.NewLine, lines) : string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the days left text
+        /// </summary>
+        /// <param name="expireTime">活动结束时间</param>
+        /// <param name="now">当前时间</param>
+        /// <returns>活动剩余日期</returns>
+        private static string GetDaysLeftText(DateTime expireTime, DateTime now)
+        {
+            int daysLeft = (expireTime - now).Days;
+            return daysLeft > 0 ? daysLeft.ToString() : LocalizationHelper.GetString("LessThanOneDay");
         }
 
         /// <summary>

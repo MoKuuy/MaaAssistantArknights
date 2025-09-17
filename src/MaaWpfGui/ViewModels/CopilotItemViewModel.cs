@@ -1,6 +1,6 @@
 // <copyright file="CopilotItemViewModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -23,10 +23,10 @@ namespace MaaWpfGui.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="CopilotItemViewModel"/> class.
         /// </summary>
-        /// <param name="name">The name.</param>
+        /// <param name="name">The name</param>
         /// <param name="filePath">The original Name of file</param>
         /// <param name="isRaid">是否为突袭关</param>
-        /// <param name="copilotId">作业站对应id，本地作业应为默认值0</param>
+        /// <param name="copilotId">作业站对应 id，本地作业应为默认值 0</param>
         /// <param name="isChecked">isChecked</param>
         public CopilotItemViewModel(string name, string filePath, bool isRaid = false, int copilotId = 0, bool isChecked = true)
         {
@@ -50,7 +50,7 @@ namespace MaaWpfGui.ViewModels
         public string FilePath { get; }
 
         /// <summary>
-        /// Gets or sets 作业站对应id，本地作业应为默认值0
+        /// Gets or sets 作业站对应 id，本地作业应为默认值 0
         /// </summary>
         [JsonProperty("copilot_id")]
         public int CopilotId { get; set; }
@@ -75,7 +75,7 @@ namespace MaaWpfGui.ViewModels
         private bool _isChecked;
 
         /// <summary>
-        /// Gets or sets a value indicating whether gets or sets whether the key is checked.
+        /// Gets or sets a value indicating whether the key is checked.
         /// </summary>
         public bool IsChecked
         {

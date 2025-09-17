@@ -1,6 +1,6 @@
 // <copyright file="AwardSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,14 +10,17 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Windows;
+using MaaWpfGui.Configuration.Single.MaaTask;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Models.AsstTasks;
 using MaaWpfGui.Services;
 using Newtonsoft.Json.Linq;
+using static MaaWpfGui.Main.AsstProxy;
 
 namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
 
@@ -60,14 +63,14 @@ public class AwardSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _receiveFreeRecruit = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.ReceiveFreeRecruit, bool.FalseString));
+    private bool _receiveFreeGacha = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.ReceiveFreeGacha, bool.FalseString));
 
     /// <summary>
     /// Gets or sets a value indicating whether receive mail is enabled.
     /// </summary>
-    public bool ReceiveFreeRecruit
+    public bool ReceiveFreeGacha
     {
-        get => _receiveFreeRecruit;
+        get => _receiveFreeGacha;
         set
         {
             if (value)
@@ -86,8 +89,8 @@ public class AwardSettingsUserControlModel : TaskViewModel
                 }
             }
 
-            SetAndNotify(ref _receiveFreeRecruit, value);
-            ConfigurationHelper.SetValue(ConfigurationKeys.ReceiveFreeRecruit, value.ToString());
+            SetAndNotify(ref _receiveFreeGacha, value);
+            ConfigurationHelper.SetValue(ConfigurationKeys.ReceiveFreeGacha, value.ToString());
         }
     }
 
@@ -142,11 +145,37 @@ public class AwardSettingsUserControlModel : TaskViewModel
         {
             Award = ReceiveAward,
             Mail = ReceiveMail,
-            FreeGacha = ReceiveFreeRecruit,
+            FreeGacha = ReceiveFreeGacha,
             Orundum = ReceiveOrundum,
             Mining = ReceiveMining,
             SpecialAccess = ReceiveSpecialAccess,
         };
         return task.Serialize();
+    }
+
+    public override bool? SerializeTask(BaseTask baseTask, int? taskId = null)
+    {
+        if (baseTask is not AwardTask award)
+        {
+            return null;
+        }
+
+        var task = new AsstAwardTask()
+        {
+            Award = award.Award,
+            Mail = award.Mail,
+            FreeGacha = award.FreeGacha,
+            Orundum = award.Orundum,
+            Mining = award.Mining,
+            SpecialAccess = award.SpecialAccess,
+        };
+        if (taskId is int id)
+        {
+            return Instances.AsstProxy.AsstSetTaskParamsEncoded(id, task);
+        }
+        else
+        {
+            return Instances.AsstProxy.AsstAppendTaskWithEncoding(TaskType.Award, task);
+        }
     }
 }

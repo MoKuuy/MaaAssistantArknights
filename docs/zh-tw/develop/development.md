@@ -28,10 +28,9 @@ icon: iconoir:developer
 4. 下載預構建的第三方庫
 
     **需要有 Python 環境，請自行搜索 Python 安裝教學**  
-    _（maadeps-download.py 文件在項目根目錄）_
 
     ```cmd
-    python maadeps-download.py
+    python tools/maadeps-download.py
     ```
 
 5. 配置編程環境
@@ -61,7 +60,7 @@ icon: iconoir:developer
     git push origin dev
     ```
 
-11. 打開 [MAA 主倉庫](https://github.com/MaaAssistantArknights/MaaAssistantArknights)。提交一個 Rull Request，等待管理員通過。別忘了你是在 dev 分支上修改，別提交到 master 分支去了
+11. 打開 [MAA 主倉庫](https://github.com/MaaAssistantArknights/MaaAssistantArknights)。提交一個 Pull Request，等待管理員通過。別忘了你是在 dev 分支上修改，別提交到 master 分支去了
 12. 當 MAA 原倉庫出現更改（別人做的），你可能需要把這些更改同步到你的分支
 
     1. 關聯 MAA 原倉庫

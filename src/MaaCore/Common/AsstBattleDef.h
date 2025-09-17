@@ -23,12 +23,42 @@ enum class SkillUsage // 技能用法
     TimesUsed         // 已经使用了 X 次
 };
 
+// 干员练度需求
+struct OperatorRequirements
+{
+    // int elite = -1;        // 精英化等级
+    // int level = -1;        // 干员等级
+    // int skill_level = -1;  // 技能等级
+    // int potentiality = -1; // 潜能要求
+    int module = -1; // 模组编号 -1: 不切换模组 / 无要求, 0: 不使用模组, 1: 模组χ, 2: 模组γ, 3: 模组α, 4: 模组Δ
+
+    bool operator==(const OperatorRequirements& req) const { return module == req.module; }
+};
+
+// 干员编队状态
+enum class OperStatus
+{
+    Unchecked,   // 未检查, 默认值; 理论上仅group中有干员选中后, 其余干员才会保留该状态
+    Selected,    // 已编入
+    Missing,     // 缺失
+    Unavailable, // 不可用, 要求不达标
+    // Unknown,     // 未知状态
+};
+
 struct OperUsage // 干员用法
 {
     std::string name;
-    int skill = 0;       // 技能序号，取值范围 [0, 3]，0时使用默认技能 或 上次编队时使用的技能
+    int skill = 0;                                // 技能序号，取值范围 [0, 3]，0时使用默认技能 或 上次编队时使用的技能
     SkillUsage skill_usage = SkillUsage::NotUse;
-    int skill_times = 1; // 使用技能的次数，默认为 1，兼容曾经的作业
+    int skill_times = 1;                          // 使用技能的次数，默认为 1，兼容曾经的作业
+    battle::OperatorRequirements requirements {}; // 练度需求
+    OperStatus status = OperStatus::Unchecked;    // 编队状态, 可能有其他更好的位置存储
+
+    bool operator==(const OperUsage& other) const
+    {
+        return name == other.name && skill == other.skill && skill_usage == other.skill_usage &&
+               skill_times == other.skill_times && requirements == other.requirements;
+    }
 };
 
 enum class DeployDirection
@@ -182,7 +212,8 @@ using RoleCounts = std::unordered_map<Role, int>;
 
 namespace copilot
 {
-using OperUsageGroups = std::unordered_map<std::string, std::vector<OperUsage>>;
+using OperUsageGroup = std::pair<std::string, std::vector<OperUsage>>;
+using OperUsageGroups = std::vector<OperUsageGroup>;
 
 enum class ActionType
 {

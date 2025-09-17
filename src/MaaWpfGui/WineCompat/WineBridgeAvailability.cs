@@ -1,6 +1,6 @@
 // <copyright file="WineBridgeAvailability.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,9 +11,19 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
+namespace MaaWpfGui.WineCompat;
+
+/// <summary>
+/// Availability status of the Wine compatibility layer bridge.
+/// </summary>
 public enum WineBridgeAvailability
 {
+    /// <summary>Wine bridge is fully operational and functioning correctly.</summary>
     Operational,
+
+    /// <summary>Wine bridge has encountered errors or configuration issues.</summary>
     Faulted,
+
+    /// <summary>Wine bridge is not available or cannot be initialized.</summary>
     NotAvailable,
 }

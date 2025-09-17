@@ -1,31 +1,17 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 #include <unordered_set>
 
 #include <meojson/json.hpp>
 #include <opencv2/opencv.hpp>
 
-#include "Utils/Time.hpp"
+#ifdef _WIN32
+#include "Utils/Platform/SafeWindows.h"
+#endif
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 5054)
-#elif defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-#pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#elif defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+#include "Utils/StringMisc.hpp"
 
 namespace fs = std::filesystem;
 
@@ -68,7 +54,9 @@ bool update_version_info(const fs::path& input_dir, const fs::path& output_dir);
 
 int main([[maybe_unused]] int argc, char** argv)
 {
+#if defined(_WIN32)
     SetConsoleOutputCP(CP_UTF8);
+#endif
 
     // ---- PATH DECLARATION ----
 
@@ -203,11 +191,11 @@ bool run_parallel_tasks(
         }
         std::cout << "------- Update version info for Official -------" << '\n';
         if (!update_version_info(official_data_dir / "gamedata" / "excel", resource_dir)) {
-            std::cerr << "update_version_info failed" << '\n';
+            std::cerr << "update_version_info failed for Official" << '\n';
             error_occurred.store(true);
         }
         else {
-            std::cout << ">Done version Official" << '\n';
+            std::cout << ">Done version for Official" << '\n';
         }
 
         std::vector<std::thread> version_threads;
@@ -217,7 +205,7 @@ bool run_parallel_tasks(
                 if (error_occurred.load()) {
                     return;
                 }
-                std::cout << "------- Update version info " << out << " -------" << '\n';
+                std::cout << "------- Update version info for " << out << " -------" << '\n';
                 if (!update_version_info(
                         overseas_data_dir / in / "gamedata" / "excel",
                         resource_dir / "global" / out / "resource")) {
@@ -225,7 +213,7 @@ bool run_parallel_tasks(
                     error_occurred.store(true);
                 }
                 else {
-                    std::cout << ">Done version " << out << '\n';
+                    std::cout << ">Done version for " << out << '\n';
                 }
             });
         }
@@ -240,16 +228,16 @@ bool run_parallel_tasks(
             if (error_occurred.load()) {
                 return;
             }
-            std::cout << "------- OCR replace " << out << " -------" << '\n';
+            std::cout << "------- OCR replace for " << out << " -------" << '\n';
             if (!ocr_replace_overseas(
                     overseas_data_dir / in / "gamedata" / "excel",
                     resource_dir / "global" / out / "resource" / "tasks",
                     official_data_dir / "gamedata" / "excel")) {
-                std::cerr << "ocr_replace_overseas failed " << out << '\n';
+                std::cerr << "ocr_replace_overseas failed for " << out << '\n';
                 error_occurred.store(true);
             }
             else {
-                std::cout << ">Done OCR replace " << out << '\n';
+                std::cout << ">Done OCR replace for " << out << '\n';
             }
         }
     });
@@ -263,11 +251,11 @@ bool run_parallel_tasks(
                 official_data_dir / "gamedata" / "excel",
                 resource_dir / "recruitment.json",
                 true)) {
-            std::cerr << "Update recruitment data failed" << '\n';
+            std::cerr << "Update recruitment data failed for Official" << '\n';
             error_occurred.store(true);
         }
         else {
-            std::cout << ">Done recruitment Official" << '\n';
+            std::cout << ">Done recruitment for Official" << '\n';
         }
 
         std::vector<std::thread> recruitment_threads;
@@ -282,11 +270,11 @@ bool run_parallel_tasks(
                         overseas_data_dir / in / "gamedata" / "excel",
                         resource_dir / "global" / out / "resource" / "recruitment.json",
                         false)) {
-                    std::cerr << "update_recruitment_data failed " << out << '\n';
+                    std::cerr << "update_recruitment_data failed for " << out << '\n';
                     error_occurred.store(true);
                 }
                 else {
-                    std::cout << ">Done recruitment " << out << '\n';
+                    std::cout << ">Done recruitment for " << out << '\n';
                 }
             });
         }
@@ -302,11 +290,11 @@ bool run_parallel_tasks(
         }
         std::cout << "------- Update items data for Official -------" << '\n';
         if (!update_items_data(official_data_dir, resource_dir, true)) {
-            std::cerr << "Update items data failed" << '\n';
+            std::cerr << "Update items data failed for Official" << '\n';
             error_occurred.store(true);
         }
         else {
-            std::cout << ">Done items Official" << '\n';
+            std::cout << ">Done items for Official" << '\n';
         }
 
         std::vector<std::thread> items_threads;
@@ -316,16 +304,16 @@ bool run_parallel_tasks(
                 if (error_occurred.load()) {
                     return;
                 }
-                std::cout << "------- Update items data " << out << " -------" << '\n';
+                std::cout << "------- Update items data for " << out << " -------" << '\n';
                 if (!update_items_data(
                         overseas_data_dir / in / "gamedata" / "excel",
                         resource_dir / "global" / out / "resource",
                         false)) {
-                    std::cerr << "update_items_data failed " << out << '\n';
+                    std::cerr << "update_items_data failed for " << out << '\n';
                     error_occurred.store(true);
                 }
                 else {
-                    std::cout << ">Done items " << out << '\n';
+                    std::cout << ">Done items for " << out << '\n';
                 }
             });
         }
@@ -429,7 +417,28 @@ bool update_items_data(const fs::path& input_dir, const fs::path& output_dir, bo
         output["usage"] = item_info["usage"];
         output["description"] = item_info["description"];
         output["sortId"] = item_info["sortId"];
-        output["classifyType"] = item_info["classifyType"];
+
+        // TODO: When Global (and later txyw) change gamedata format, remove conditions!
+        if (item_info["classifyType"].is_number()) {
+            static const auto map_classify_type = [](int type) -> std::string {
+                switch (type) {
+                case 0:
+                    return "NONE";
+                case 1:
+                    return "CONSUME";
+                case 2:
+                    return "NORMAL";
+                case 3:
+                    return "MATERIAL";
+                default:
+                    return "UNKNOWN";
+                }
+            };
+            output["classifyType"] = map_classify_type(item_info["classifyType"].as_integer());
+        }
+        else {
+            output["classifyType"] = item_info["classifyType"];
+        }
     }
     auto output_json_path = output_dir / "item_index.json";
     std::ofstream ofs(output_json_path, std::ios::out);
@@ -585,17 +594,35 @@ bool update_infrast_data(const fs::path& input_dir, const fs::path& output_dir)
     // 这里面有些是手动修改的，要保留
     json::value& root = old_json;
     std::unordered_set<std::string> rooms;
-    for (auto& buff_obj : buffs | asst::views::values) {
-        std::string raw_room_type = static_cast<std::string>(buff_obj["roomType"]);
 
-        // 为了兼容老版本的字段 orz
-        static const std::unordered_map<std::string, std::string> RoomTypeMapping = {
-            { "POWER", "Power" },       { "CONTROL", "Control" }, { "DORMITORY", "Dorm" },
-            { "WORKSHOP", "" },         { "MANUFACTURE", "Mfg" }, { "TRADING", "Trade" },
-            { "MEETING", "Reception" }, { "HIRE", "Office" },     { "TRAINING", "" },
-        };
+    static const std::unordered_map<int, std::string> RoomTypeMapInt = {
+        { 1, "Control" }, { 2, "Power" },   { 4, "Mfg" }, { 16, "Dorm" }, { 32, "Reception" },
+        { 64, "Office" }, { 512, "Trade" }, { 1024, "" }, { 2048, "" },
+    };
 
-        std::string room_type = RoomTypeMapping.at(raw_room_type);
+    static const std::unordered_map<std::string, std::string> RoomTypeMapString = {
+        { "POWER", "Power" },       { "CONTROL", "Control" }, { "DORMITORY", "Dorm" },
+        { "WORKSHOP", "" },         { "MANUFACTURE", "Mfg" }, { "TRADING", "Trade" },
+        { "MEETING", "Reception" }, { "HIRE", "Office" },     { "TRAINING", "" },
+    };
+
+    // TODO: new meojson seems not support basic_object | std::views::values
+    for (auto& [key, val] : buffs) {
+        std::ignore = key;
+        auto& buff_obj = val;
+    // }
+    // for (auto& buff_obj : buffs | std::views::values) {
+        std::string room_type;
+
+        if (buff_obj["roomType"].is_number()) {
+            int raw_room_type = buff_obj["roomType"].as_integer();
+            room_type = RoomTypeMapInt.at(raw_room_type);
+        }
+        else {
+            std::string raw_room_type = buff_obj["roomType"].as_string();
+            room_type = RoomTypeMapString.at(raw_room_type);
+        }
+
         if (room_type.empty()) {
             continue;
         }
@@ -1006,9 +1033,9 @@ bool update_battle_chars_info(const fs::path& official_dir, const fs::path& over
 
 bool update_recruitment_data(const fs::path& input_dir, const fs::path& output, bool is_base)
 {
-    using asst::ranges::find_if, asst::ranges::range;
+    using std::ranges::find_if, std::ranges::range;
     using asst::utils::string_replace_all_in_place;
-    using asst::views::filter, asst::views::split, asst::views::transform, asst::views::drop_while;
+    using std::views::filter, std::views::split, std::views::transform, std::views::drop_while;
 
     auto not_empty = []<range Rng>(Rng str) -> bool {
         return !str.empty();
@@ -1282,8 +1309,13 @@ bool ocr_replace_overseas(const fs::path& input_dir, const fs::path& tasks_base_
             }
 
             name_buffer = stage_obj["name"].as_string();
+            // ko-kr requires space removal
             if (remove_spaces) {
                 name_buffer.erase(std::remove(name_buffer.begin(), name_buffer.end(), ' '), name_buffer.end());
+                // ro4_b_9 is blank for all clients so we skip it
+                if (name_buffer.empty()) {
+                    continue;
+                }
             }
             stage_names.emplace(id, name_buffer);
         }
@@ -1493,3 +1525,4 @@ bool update_version_info(const fs::path& input_dir, const fs::path& output_dir)
 
     return true;
 }
+

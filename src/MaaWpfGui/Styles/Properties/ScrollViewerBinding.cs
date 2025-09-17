@@ -1,6 +1,6 @@
 // <copyright file="ScrollViewerBinding.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,11 +11,13 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using HandyControl.Controls;
+using System.Windows.Media;
+using JetBrains.Annotations;
 using ScrollViewer = System.Windows.Controls.ScrollViewer;
 
 namespace MaaWpfGui.Styles.Properties
@@ -47,7 +49,7 @@ namespace MaaWpfGui.Styles.Properties
         /// </summary>
         /// <param name="depObj">The <see cref="DependencyObject"/> instance.</param>
         /// <returns>The property value.</returns>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static double GetVerticalOffset(DependencyObject depObj)
         {
             if (!(depObj is ScrollViewer))
@@ -124,7 +126,7 @@ namespace MaaWpfGui.Styles.Properties
         /// </summary>
         /// <param name="depObj">The <see cref="DependencyObject"/> instance.</param>
         /// <returns>The property value.</returns>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static double GetViewportHeight(DependencyObject depObj)
         {
             if (!(depObj is ScrollViewer scrollViewer))
@@ -201,7 +203,7 @@ namespace MaaWpfGui.Styles.Properties
         /// </summary>
         /// <param name="depObj">The <see cref="DependencyObject"/> instance.</param>
         /// <returns>The property value.</returns>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static double GetExtentHeight(DependencyObject depObj)
         {
             if (!(depObj is ScrollViewer scrollViewer))
@@ -279,7 +281,7 @@ namespace MaaWpfGui.Styles.Properties
         /// </summary>
         /// <param name="depObj">The <see cref="DependencyObject"/> instance.</param>
         /// <returns>The property value.</returns>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static List<double> GetDividerVerticalOffsetList(DependencyObject depObj)
         {
             return (List<double>)depObj.GetValue(DividerVerticalOffsetListProperty);
@@ -292,7 +294,7 @@ namespace MaaWpfGui.Styles.Properties
         /// <param name="value">The new property value.</param>
         public static void SetDividerVerticalOffsetList(DependencyObject depObj, List<double> value)
         {
-            if (!(depObj is ScrollViewer))
+            if (depObj is not ScrollViewer)
             {
                 return;
             }
@@ -302,7 +304,7 @@ namespace MaaWpfGui.Styles.Properties
 
         private static void OnDividerVerticalOffsetListPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (!(d is ScrollViewer scrollViewer))
+            if (d is not ScrollViewer scrollViewer)
             {
                 return;
             }
@@ -319,27 +321,54 @@ namespace MaaWpfGui.Styles.Properties
 
             scrollViewer.SetValue(_dividerVerticalOffsetListBindingProperty, true);
 
-            // 当滚动条载入时，遍历 StackPanel 中的所有 Divider 子元素对应位置
-            scrollViewer.Loaded += (s, se) =>
+            if (scrollViewer.Content is FrameworkElement content)
             {
-                if (!scrollViewer.HasContent || !(scrollViewer.Content is StackPanel stackPanel))
+                content.SizeChanged += (s, e) =>
                 {
-                    return;
+                    RefreshDividerOffsets(scrollViewer);
+                };
+            }
+        }
+
+        public static void RefreshDividerOffsets(ScrollViewer scrollViewer)
+        {
+            if (scrollViewer.Content is not Grid rootGrid)
+            {
+                return;
+            }
+
+            var point = new Point(10, scrollViewer.VerticalOffset);
+
+            var dividerOffsetList = (
+                from child in rootGrid.Children.OfType<Grid>()
+                orderby Grid.GetRow(child)
+                let divider = FindFirstDivider(child)
+                where divider != null
+                let pos = divider.TransformToVisual(scrollViewer).Transform(point)
+                select pos.Y).ToList();
+
+            SetDividerVerticalOffsetList(scrollViewer, dividerOffsetList);
+        }
+
+        private static FrameworkElement FindFirstDivider(DependencyObject root)
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is HandyControl.Controls.Divider divider)
+                {
+                    return divider;
                 }
 
-                var point = new Point(10, scrollViewer.VerticalOffset);
-
-                var dividerOffsetList = stackPanel.Children.OfType<Divider>()
-                    .Select(child => child.TransformToVisual(scrollViewer)
-                        .Transform(point))
-                    .Select(targetPosition => targetPosition.Y)
-                    .ToList();
-
-                if (dividerOffsetList.Count > 0)
+                var found = FindFirstDivider(child);
+                if (found != null)
                 {
-                    SetDividerVerticalOffsetList(scrollViewer, dividerOffsetList);
+                    return found;
                 }
-            };
+            }
+
+            return null;
         }
 
         #endregion DividerVerticalOffsetList attached property

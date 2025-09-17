@@ -1,6 +1,6 @@
 // <copyright file="VersionUpdateSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -20,12 +20,17 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using JetBrains.Annotations;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Extensions;
 using MaaWpfGui.Helper;
+using MaaWpfGui.Main;
 using MaaWpfGui.Models;
 using MaaWpfGui.Properties;
 using MaaWpfGui.Services;
+using MaaWpfGui.Utilities;
 using MaaWpfGui.Utilities.ValueType;
 using MaaWpfGui.ViewModels.UI;
 using Newtonsoft.Json;
@@ -156,13 +161,13 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
     {
         bool isDefaultClient = new HashSet<string> { string.Empty, "Official", "Bilibili" }.Contains(clientType);
 
-        const string DefaultJsonPath = "resource/version.json";
+        string defaultJsonPath = Path.Combine(PathsHelper.ResourceDir, "version.json");
         var jsonPath = isDefaultClient
-            ? DefaultJsonPath
-            : $"resource/global/{clientType}/resource/version.json";
+            ? defaultJsonPath
+            : Path.Combine(PathsHelper.ResourceDir, $"global/{clientType}/resource/version.json");
 
         string versionName;
-        if (!File.Exists(DefaultJsonPath) || (!isDefaultClient && !File.Exists(jsonPath)))
+        if (!File.Exists(defaultJsonPath) || (!isDefaultClient && !File.Exists(jsonPath)))
         {
             return (DateTime.MinValue, string.Empty);
         }
@@ -173,7 +178,7 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
         var activityTime = (ulong?)versionJson?["activity"]?["time"]; // 活动的开始时间
         var lastUpdated = isDefaultClient
             ? (string?)versionJson?["last_updated"]
-            : (string?)LoadJson(DefaultJsonPath)?["last_updated"];
+            : (string?)LoadJson(defaultJsonPath)?["last_updated"];
 
         var dateTime = lastUpdated == null
             ? DateTime.MinValue
@@ -210,7 +215,7 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
 
     private UpdateVersionType _versionType = (UpdateVersionType)Enum.Parse(
         typeof(UpdateVersionType),
-        ConfigurationHelper.GetGlobalValue(ConfigurationKeys.VersionType, UpdateVersionType.Stable.ToString()));
+        ConfigurationHelper.GetGlobalValue(ConfigurationKeys.VersionType, nameof(UpdateVersionType.Stable)));
 
     /// <summary>
     /// Gets or sets the type of version to update.
@@ -293,6 +298,11 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
         get => _mirrorChyanCdk;
         set
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                MirrorChyanCdkExpiredTime = 0;
+            }
+
             if (!SetAndNotify(ref _mirrorChyanCdk, value))
             {
                 return;
@@ -312,7 +322,94 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
         }
     }
 
+    // 时间戳
+    private long _mirrorChyanCdkExpiredTime = ConfigurationHelper.GetGlobalValue(ConfigurationKeys.MirrorChyanCdkExpiredTime, 0L);
+
+    public long MirrorChyanCdkExpiredTime
+    {
+        get => _mirrorChyanCdkExpiredTime;
+        set
+        {
+            if (!SetAndNotify(ref _mirrorChyanCdkExpiredTime, value))
+            {
+                return;
+            }
+
+            ConfigurationHelper.SetGlobalValue(ConfigurationKeys.MirrorChyanCdkExpiredTime, value.ToString());
+            RefreshMirrorChyanCdkRemaining();
+        }
+    }
+
+    private bool _mirrorChyanCdkFetchFailed = false;
+
+    public bool MirrorChyanCdkFetchFailed
+    {
+        get => _mirrorChyanCdkFetchFailed;
+        set => SetAndNotify(ref _mirrorChyanCdkFetchFailed, value);
+    }
+
+    public DateTime MirrorChyanCdkExpiredDateTime => DateTimeOffset.FromUnixTimeSeconds(MirrorChyanCdkExpiredTime).DateTime;
+
+    public DateTime MirrorChyanCdkExpiredLocalTime => MirrorChyanCdkExpiredDateTime.ToLocalTime();
+
+    /// <summary>
+    /// Gets 剩余时间
+    /// </summary>
+    public TimeSpan MirrorChyanCdkRemaining => MirrorChyanCdkExpiredDateTime - DateTime.Now;
+
+    /// <summary>
+    /// Gets a value indicating whether 是否已过期
+    /// </summary>
+    public bool IsMirrorChyanCdkExpired => MirrorChyanCdkRemaining.TotalSeconds <= 0;
+
+    /// <summary>
+    /// Gets 显示用的剩余时间提示
+    /// </summary>
+    public string MirrorChyanCdkRemainingText =>
+        IsMirrorChyanCdkExpired
+            ? LocalizationHelper.GetString("MirrorChyanCdkExpired")
+            : string.Format(LocalizationHelper.GetString("MirrorChyanCdkRemainingDays"),
+                            MirrorChyanCdkRemaining.TotalDays.ToString("F1"));
+
+    /// <summary>
+    /// Gets uI 显示用颜色
+    /// </summary>
+    public string MirrorChyanCdkRemainingBrush
+    {
+        get
+        {
+            if (IsMirrorChyanCdkExpired)
+            {
+                return UiLogColor.Error;
+            }
+
+            if (MirrorChyanCdkRemaining.TotalDays <= 7)
+            {
+                return UiLogColor.Warning;
+            }
+
+            return UiLogColor.Success;
+        }
+    }
+
+    public void RefreshMirrorChyanCdkRemaining()
+    {
+        OnPropertyChanged(nameof(MirrorChyanCdkExpiredDateTime));
+        OnPropertyChanged(nameof(MirrorChyanCdkRemaining));
+        OnPropertyChanged(nameof(IsMirrorChyanCdkExpired));
+        OnPropertyChanged(nameof(MirrorChyanCdkRemainingText));
+        OnPropertyChanged(nameof(MirrorChyanCdkRemainingBrush));
+    }
+
     private bool _startupUpdateCheck = Convert.ToBoolean(ConfigurationHelper.GetGlobalValue(ConfigurationKeys.StartupUpdateCheck, bool.TrueString));
+
+    // UI 绑定的方法
+    [UsedImplicitly]
+    public void MirrorChyanCdkCopy()
+    {
+        System.Windows.Forms.Clipboard.Clear();
+        System.Windows.Forms.Clipboard.SetDataObject(MirrorChyanCdk);
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether to check update.
@@ -423,9 +520,15 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
     /// Updates manually.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public async Task ManualUpdate()
     {
+        if (SettingsViewModel.VersionUpdateSettings.UpdateSource == "MirrorChyan" && string.IsNullOrEmpty(SettingsViewModel.VersionUpdateSettings.MirrorChyanCdk))
+        {
+            ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanSelectedButNoCdk"));
+            return;
+        }
+
         var ret = await Instances.VersionUpdateViewModel.CheckAndDownloadVersionUpdate();
 
         var toastMessage = ret switch
@@ -454,24 +557,23 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
         }
     }
 
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public async Task ManualUpdateResource()
     {
+        if (SettingsViewModel.VersionUpdateSettings.UpdateSource == "MirrorChyan" && string.IsNullOrEmpty(SettingsViewModel.VersionUpdateSettings.MirrorChyanCdk))
+        {
+            ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanSelectedButNoCdk"));
+            return;
+        }
+
         IsCheckingForUpdates = true;
 
         var (ret, uri, releaseNote) = await ResourceUpdater.CheckFromMirrorChyanAsync();
         var toastMessage = ret switch
         {
-            VersionUpdateViewModel.CheckUpdateRetT.NoNeedToUpdate => string.Empty,
-            VersionUpdateViewModel.CheckUpdateRetT.NoNeedToUpdateDebugVersion => LocalizationHelper.GetString("NoNeedToUpdateDebugVersion"),
             VersionUpdateViewModel.CheckUpdateRetT.AlreadyLatest => LocalizationHelper.GetString("AlreadyLatest"),
             VersionUpdateViewModel.CheckUpdateRetT.UnknownError => LocalizationHelper.GetString("NewVersionDetectFailedTitle"),
             VersionUpdateViewModel.CheckUpdateRetT.NetworkError => LocalizationHelper.GetString("CheckNetworking"),
-            VersionUpdateViewModel.CheckUpdateRetT.FailedToGetInfo => LocalizationHelper.GetString("GetReleaseNoteFailed"),
-            VersionUpdateViewModel.CheckUpdateRetT.OK => string.Empty,
-            VersionUpdateViewModel.CheckUpdateRetT.NewVersionIsBeingBuilt => LocalizationHelper.GetString("NewVersionIsBeingBuilt"),
-            VersionUpdateViewModel.CheckUpdateRetT.OnlyGameResourceUpdated => LocalizationHelper.GetString("GameResourceUpdated"),
-            VersionUpdateViewModel.CheckUpdateRetT.NoMirrorChyanCdk => LocalizationHelper.GetString("MirrorChyanSoftwareUpdateTip"),
             _ => string.Empty,
         };
 
@@ -482,7 +584,7 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
 
         if (ret == VersionUpdateViewModel.CheckUpdateRetT.AlreadyLatest)
         {
-            SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates = false;
+            IsCheckingForUpdates = false;
             return;
         }
 
@@ -497,12 +599,16 @@ public class VersionUpdateSettingsUserControlModel : PropertyChangedBase
         {
             ResourceUpdater.ResourceReload();
         }
+        else
+        {
+            AchievementTrackerHelper.Instance.AddProgress(AchievementIds.CdnTorture);
+        }
 
         IsCheckingForUpdates = false;
     }
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void ShowChangelog()
     {
         Instances.WindowManager.ShowWindow(Instances.VersionUpdateViewModel);

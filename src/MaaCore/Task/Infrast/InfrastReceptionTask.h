@@ -13,6 +13,8 @@ public:
 
     void set_receive_message_board(bool value) noexcept { m_receive_message_board = value; }
 
+    void set_enable_clue_exchange(bool value) noexcept { m_enable_clue_exchange = value; }
+
 protected:
     virtual bool _run() override;
 
@@ -22,7 +24,8 @@ private:
     // 收取信息板的周限300信用
     bool receive_message_board();
     bool close_end_of_clue_exchange();
-    bool get_clue();
+    bool get_friend_clue();
+    bool get_self_clue();
     bool use_clue();
     bool proc_clue_vacancy();
     bool unlock_clue_exchange();
@@ -31,5 +34,6 @@ private:
     bool shift();
 
     bool m_receive_message_board = true;
+    bool m_enable_clue_exchange = true;
 };
 }

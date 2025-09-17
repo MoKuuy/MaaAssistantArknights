@@ -43,6 +43,8 @@ protected:
     void swipe_to_the_left_of_main_ui();
     // 滑动基建的主界面到最右侧
     void swipe_to_the_right_of_main_ui();
+    // 往右滑一点
+    void swipe_to_right_of_main_ui();
     void swipe_of_operlist();
     bool is_use_custom_opers();
     infrast::CustomRoomConfig& current_room_config();
@@ -59,6 +61,8 @@ protected:
     // 复核干员选择是否符合期望
     bool select_opers_review(infrast::CustomRoomConfig const& origin_room_config, size_t num_of_opers_expect = 0);
     void order_opers_selection(const std::vector<std::string>& names);
+    // 关闭按职业筛选
+    void close_quick_formation_expand_role() const;
 
     virtual void click_return_button() override;
     // 点击进入设施后，左下角的tab（我也不知道这玩意该叫啥）

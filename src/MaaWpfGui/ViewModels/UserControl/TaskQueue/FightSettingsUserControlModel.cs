@@ -1,6 +1,6 @@
 // <copyright file="FightSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,19 +10,24 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+using JetBrains.Annotations;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Models.AsstTasks;
 using MaaWpfGui.Services;
+using MaaWpfGui.Utilities;
 using MaaWpfGui.Utilities.ValueType;
 using MaaWpfGui.ViewModels.UI;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Stylet;
 
 namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
 
@@ -31,6 +36,10 @@ namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
 /// </summary>
 public class FightSettingsUserControlModel : TaskViewModel
 {
+    public static FightTimes? FightReport { get; set; }
+
+    public static SanityInfo? SanityReport { get; set; }
+
     static FightSettingsUserControlModel()
     {
         Instance = new();
@@ -76,12 +85,17 @@ public class FightSettingsUserControlModel : TaskViewModel
                 return Stage1;
             }
 
-            if (Instances.TaskQueueViewModel.IsStageOpen(Stage2))
+            if (Instances.TaskQueueViewModel.IsStageOpen(Stage2 ??= string.Empty))
             {
                 return Stage2;
             }
 
-            return Instances.TaskQueueViewModel.IsStageOpen(Stage3) ? Stage3 : Stage1;
+            if (Instances.TaskQueueViewModel.IsStageOpen(Stage3 ??= string.Empty))
+            {
+                return Stage3;
+            }
+
+            return Instances.TaskQueueViewModel.IsStageOpen(Stage4 ??= string.Empty) ? Stage4 : Stage1;
         }
     }
 
@@ -103,15 +117,10 @@ public class FightSettingsUserControlModel : TaskViewModel
             { "炭", "SK-5" },
         };
 
-    /// <summary>
-    /// Gets or private sets the list of series.
-    /// </summary>
-    public List<int> SeriesList { get; private set; } = Enumerable.Range(1, 6).ToList();
+    public string?[] Stages => [Stage1, Stage2, Stage3, Stage4];
 
-    public string?[] Stages => [Stage1, Stage2, Stage3];
-
-    /// <remarks>Try to fix: issues#5742. 关卡选择为 null 时的一个补丁，可能是 StageList 改变后，wpf binding 延迟更新的问题。</remarks>
-    public string _stage1Fallback = ConfigurationHelper.GetValue(ConfigurationKeys.Stage1, string.Empty) ?? string.Empty;
+    // Try to fix: issues#5742. 关卡选择为 null 时的一个补丁，可能是 StageList 改变后，wpf binding 延迟更新的问题。</remarks>
+    private string _stage1Fallback = ConfigurationHelper.GetValue(ConfigurationKeys.Stage1, string.Empty) ?? string.Empty;
 
     private string? _stage1 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage1, string.Empty) ?? string.Empty;
 
@@ -144,12 +153,12 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private string _stage2 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage2, string.Empty) ?? string.Empty;
+    private string? _stage2 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage2, string.Empty) ?? string.Empty;
 
     /// <summary>
     /// Gets or sets the stage2.
     /// </summary>
-    public string Stage2
+    public string? Stage2
     {
         get => _stage2;
         set
@@ -174,12 +183,12 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private string _stage3 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage3, string.Empty) ?? string.Empty;
+    private string? _stage3 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage3, string.Empty) ?? string.Empty;
 
     /// <summary>
-    /// Gets or sets the stage2.
+    /// Gets or sets the stage3.
     /// </summary>
-    public string Stage3
+    public string? Stage3
     {
         get => _stage3;
         set
@@ -204,7 +213,37 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _useRemainingSanityStage = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseRemainingSanityStage, bool.TrueString));
+    private string? _stage4 = ConfigurationHelper.GetValue(ConfigurationKeys.Stage4, string.Empty) ?? string.Empty;
+
+    /// <summary>
+    /// Gets or sets the stage4.
+    /// </summary>
+    public string? Stage4
+    {
+        get => _stage4;
+        set
+        {
+            if (_stage4 == value)
+            {
+                return;
+            }
+
+            if (CustomStageCode)
+            {
+                if (_stage4?.Length != 3 && value != null)
+                {
+                    value = ToUpperAndCheckStage(value);
+                }
+            }
+
+            SetAndNotify(ref _stage4, value);
+            Instances.TaskQueueViewModel.SetFightParams();
+            ConfigurationHelper.SetValue(ConfigurationKeys.Stage4, value);
+            Instances.TaskQueueViewModel.UpdateDatePrompt();
+        }
+    }
+
+    private bool _useRemainingSanityStage = ConfigurationHelper.GetValue(ConfigurationKeys.UseRemainingSanityStage, true);
 
     public bool UseRemainingSanityStage
     {
@@ -216,7 +255,7 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _customStageCode = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.CustomStageCode, bool.FalseString));
+    private bool _customStageCode = ConfigurationHelper.GetValue(ConfigurationKeys.CustomStageCode, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to use custom stage code.
@@ -244,12 +283,13 @@ public class FightSettingsUserControlModel : TaskViewModel
         Stage1 = StageList.FirstOrDefault(x => x.Value == Stage1)?.Value ?? string.Empty;
         Stage2 = StageList.FirstOrDefault(x => x.Value == Stage2)?.Value ?? string.Empty;
         Stage3 = StageList.FirstOrDefault(x => x.Value == Stage3)?.Value ?? string.Empty;
+        Stage4 = StageList.FirstOrDefault(x => x.Value == Stage4)?.Value ?? string.Empty;
         RemainingSanityStage = RemainingSanityStageList.FirstOrDefault(x => x.Value == RemainingSanityStage)?.Value ?? string.Empty;
     }
 
-    private string _remainingSanityStage = ConfigurationHelper.GetValue(ConfigurationKeys.RemainingSanityStage, string.Empty) ?? string.Empty;
+    private string? _remainingSanityStage = ConfigurationHelper.GetValue(ConfigurationKeys.RemainingSanityStage, string.Empty) ?? string.Empty;
 
-    public string RemainingSanityStage
+    public string? RemainingSanityStage
     {
         get => _remainingSanityStage;
         set
@@ -278,56 +318,32 @@ public class FightSettingsUserControlModel : TaskViewModel
     /// </summary>
     public void ResetFightVariables()
     {
-        if (UseStoneWithNull == null)
-        {
-            UseStone = false;
-        }
-
-        if (UseMedicineWithNull == null)
-        {
-            UseMedicine = false;
-        }
-
-        if (HasTimesLimitedWithNull == null)
-        {
-            HasTimesLimited = false;
-        }
-
-        if (IsSpecifiedDropsWithNull == null)
-        {
-            IsSpecifiedDrops = false;
-        }
+        UseStone ??= false;
+        UseMedicine ??= false;
+        HasTimesLimited ??= false;
+        IsSpecifiedDrops ??= false;
     }
 
-    private bool? _useMedicineWithNull = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseMedicine, bool.FalseString));
+    private bool? _useMedicine = ConfigurationHelper.GetValue(ConfigurationKeys.UseMedicine, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to use medicine with null.
     /// </summary>
-    public bool? UseMedicineWithNull
+    public bool? UseMedicine
     {
-        get => _useMedicineWithNull;
+        get => _useMedicine;
         set
         {
-            SetAndNotify(ref _useMedicineWithNull, value);
+            SetAndNotify(ref _useMedicine, value);
             if (value == false)
             {
-                UseStone = false;
+                UseStoneDisplay = false;
             }
 
             Instances.TaskQueueViewModel.SetFightParams();
             value ??= false;
             ConfigurationHelper.SetValue(ConfigurationKeys.UseMedicine, value.ToString());
         }
-    }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to use medicine.
-    /// </summary>
-    public bool UseMedicine
-    {
-        get => UseMedicineWithNull != false;
-        set => UseMedicineWithNull = value;
     }
 
     private int _medicineNumber = ConfigurationHelper.GetValue(ConfigurationKeys.UseMedicineQuantity, 999);
@@ -352,15 +368,15 @@ public class FightSettingsUserControlModel : TaskViewModel
 
     public static string UseStoneString => LocalizationHelper.GetString("UseOriginitePrime");
 
-    private bool? _useStoneWithNull = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseMedicine, bool.FalseString)) &&
-                                      Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseStone, bool.FalseString));
+    private bool? _useStone = ConfigurationHelper.GetValue(ConfigurationKeys.UseMedicine, false) &&
+                                      ConfigurationHelper.GetValue(ConfigurationKeys.UseStone, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to use originiums with null.
     /// </summary>
-    public bool? UseStoneWithNull
+    public bool? UseStone
     {
-        get => _useStoneWithNull;
+        get => _useStone;
         set
         {
             if (!AllowUseStoneSave && value == true)
@@ -368,18 +384,15 @@ public class FightSettingsUserControlModel : TaskViewModel
                 value = null;
             }
 
-            SetAndNotify(ref _useStoneWithNull, value);
+            SetAndNotify(ref _useStone, value);
             if (value != false)
             {
                 MedicineNumber = 999;
-                if (!UseMedicine)
+                if (UseMedicine == false)
                 {
-                    UseMedicineWithNull = value;
+                    UseMedicine = value;
                 }
             }
-
-            // IsEnabled="{c:Binding UseStone}"
-            NotifyOfPropertyChange(nameof(UseStone));
 
             Instances.TaskQueueViewModel.SetFightParams();
             if (AllowUseStoneSave)
@@ -393,10 +406,11 @@ public class FightSettingsUserControlModel : TaskViewModel
     /// Gets or sets a value indicating whether to use originiums.
     /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global
-    public bool UseStone
+    [PropertyDependsOn(nameof(UseStone))]
+    public bool UseStoneDisplay
     {
-        get => UseStoneWithNull != false;
-        set => UseStoneWithNull = value;
+        get => UseStone != false;
+        set => UseStone = value;
     }
 
     private int _stoneNumber = ConfigurationHelper.GetValue(ConfigurationKeys.UseStoneQuantity, 0);
@@ -419,30 +433,21 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool? _hasTimesLimitedWithNull = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.TimesLimited, bool.FalseString));
+    private bool? _hasTimesLimited = ConfigurationHelper.GetValue(ConfigurationKeys.TimesLimited, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether the number of times is limited with null.
     /// </summary>
-    public bool? HasTimesLimitedWithNull
+    public bool? HasTimesLimited
     {
-        get => _hasTimesLimitedWithNull;
+        get => _hasTimesLimited;
         set
         {
-            SetAndNotify(ref _hasTimesLimitedWithNull, value);
+            SetAndNotify(ref _hasTimesLimited, value);
             Instances.TaskQueueViewModel.SetFightParams();
             value ??= false;
             ConfigurationHelper.SetValue(ConfigurationKeys.TimesLimited, value.ToString());
         }
-    }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the number of times is limited.
-    /// </summary>
-    public bool HasTimesLimited
-    {
-        get => HasTimesLimitedWithNull != false;
-        set => HasTimesLimitedWithNull = value;
     }
 
     private int _maxTimes = ConfigurationHelper.GetValue(ConfigurationKeys.TimesLimitedQuantity, 5);
@@ -465,7 +470,31 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private int _series = ConfigurationHelper.GetValue(ConfigurationKeys.SeriesQuantity, 1);
+    public static Dictionary<string, int> SeriesList { get; } = new()
+    {
+        { "AUTO", 0 },
+        { "6", 6 },
+        { "5", 5 },
+        { "4", 4 },
+        { "3", 3 },
+        { "2", 2 },
+        { "1", 1 },
+        { LocalizationHelper.GetString("NotSwitch"), -1 },
+    };
+
+    private int _series = InitFightSeries();
+
+    private static int InitFightSeries()
+    {
+        var series = ConfigurationHelper.GetValue(ConfigurationKeys.SeriesQuantity, 0);
+        if (SeriesList.ContainsValue(series))
+        {
+            return series;
+        }
+
+        ConfigurationHelper.SetValue(ConfigurationKeys.SeriesQuantity, "0");
+        return 0;
+    }
 
     /// <summary>
     /// Gets or sets the max number of times.
@@ -487,17 +516,17 @@ public class FightSettingsUserControlModel : TaskViewModel
 
     #region Drops
 
-    private bool? _isSpecifiedDropsWithNull = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.DropsEnable, bool.FalseString));
+    private bool? _isSpecifiedDrops = ConfigurationHelper.GetValue(ConfigurationKeys.DropsEnable, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether the drops are specified.
     /// </summary>
-    public bool? IsSpecifiedDropsWithNull
+    public bool? IsSpecifiedDrops
     {
-        get => _isSpecifiedDropsWithNull;
+        get => _isSpecifiedDrops;
         set
         {
-            if (!SetAndNotify(ref _isSpecifiedDropsWithNull, value))
+            if (!SetAndNotify(ref _isSpecifiedDrops, value))
             {
                 return;
             }
@@ -509,18 +538,9 @@ public class FightSettingsUserControlModel : TaskViewModel
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the drops are specified.
-    /// </summary>
-    public bool IsSpecifiedDrops
-    {
-        get => IsSpecifiedDropsWithNull != false;
-        set => IsSpecifiedDropsWithNull = value;
-    }
-
-    /// <summary>
     /// Gets the list of all drops.
     /// </summary>
-    private List<CombinedData> AllDrops { get; } = new();
+    private List<CombinedData> AllDrops { get; } = [];
 
     /// <summary>
     /// 关卡不可掉落的材料
@@ -528,22 +548,23 @@ public class FightSettingsUserControlModel : TaskViewModel
     private static readonly HashSet<string> _excludedValues =
     [
         "3213", "3223", "3233", "3243", // 双芯片
-            "3253", "3263", "3273", "3283", // 双芯片
-            "7001", "7002", "7003", "7004", // 许可
-            "4004", "4005", // 凭证
-            "3105", "3131", "3132", "3233", // 龙骨/加固建材
-            "6001", // 演习券
-            "3141", "4002", // 源石
-            "32001", // 芯片助剂
-            "30115", // 聚合剂
-            "30125", // 双极纳米片
-            "30135", // D32钢
-            "30145", // 晶体电子单元
-            "30155", // 烧结核凝晶
-        ];
+        "3253", "3263", "3273", "3283", // 双芯片
+        "7001", "7002", "7003", "7004", // 许可
+        "4004", "4005", // 凭证
+        "3105", "3131", "3132", "3133", // 龙骨/加固建材
+        "6001", // 演习券
+        "3141", "4002", // 源石
+        "32001", // 芯片助剂
+        "30115", // 聚合剂
+        "30125", // 双极纳米片
+        "30135", // D32钢
+        "30145", // 晶体电子单元
+        "30155", // 烧结核凝晶
+    ];
 
     public void InitDrops()
     {
+        AllDrops.Add(new() { Display = LocalizationHelper.GetString("NotSelected"), Value = string.Empty });
         foreach (var (val, value) in ItemListHelper.ArkItems)
         {
             // 不是数字的东西都是正常关卡不会掉的（大概吧）
@@ -559,11 +580,22 @@ public class FightSettingsUserControlModel : TaskViewModel
                 continue;
             }
 
-            AllDrops.Add(new CombinedData { Display = dis, Value = val });
+            AllDrops.Add(new() { Display = dis, Value = val });
         }
 
         AllDrops.Sort((a, b) => string.Compare(a.Value, b.Value, StringComparison.Ordinal));
-        DropsList = new ObservableCollection<CombinedData>(AllDrops);
+        DropsList = [.. AllDrops];
+        if (AllDrops.FirstOrDefault(i => i.Value == DropsItemId) is { } item)
+        {
+            DropsItemName = item.Display;
+            NotifyOfPropertyChange(nameof(DropsItemName));
+        }
+        else
+        {
+            DropsItemId = string.Empty;
+            DropsItemName = string.Empty;
+            NotifyOfPropertyChange(nameof(DropsItemName));
+        }
     }
 
     /// <summary>
@@ -587,44 +619,25 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private string _dropsItemName = ConfigurationHelper.GetValue(ConfigurationKeys.DropsItemName, LocalizationHelper.GetString("NotSelected"));
-
     /// <summary>
     /// Gets or sets the item Name of drops.
     /// </summary>
-    public string DropsItemName
-    {
-        get => _dropsItemName;
-        set
-        {
-            SetAndNotify(ref _dropsItemName, value);
-            Instances.TaskQueueViewModel.SetFightParams();
-            ConfigurationHelper.SetValue(ConfigurationKeys.DropsItemName, DropsItemName);
-        }
-    }
+    public string DropsItemName { get; set; } = string.Empty;
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void DropsListDropDownClosed()
     {
-        foreach (var item in DropsList)
+        if (DropsList.FirstOrDefault(i => i.Display == DropsItemName) is { } item)
         {
-            if (DropsItemName != item.Display)
-            {
-                continue;
-            }
-
             DropsItemId = item.Value;
-
-            if (DropsItemName != item.Display || DropsItemId != item.Value)
-            {
-                DropsItemName = LocalizationHelper.GetString("NotSelected");
-            }
-
-            return;
         }
-
-        DropsItemName = LocalizationHelper.GetString("NotSelected");
+        else
+        {
+            DropsItemId = string.Empty;
+            DropsItemName = LocalizationHelper.GetString("NotSelected");
+            NotifyOfPropertyChange(nameof(DropsItemName));
+        }
     }
 
     private int _dropsQuantity = ConfigurationHelper.GetValue(ConfigurationKeys.DropsQuantity, 5);
@@ -645,7 +658,39 @@ public class FightSettingsUserControlModel : TaskViewModel
 
     #endregion Drops
 
-    private bool _isDrGrandet = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.IsDrGrandet, bool.FalseString));
+    public static Dictionary<string, string> AnnihilationModeList { get; } = new()
+    {
+        { LocalizationHelper.GetString("Annihilation"), "Annihilation" },
+        { LocalizationHelper.GetString("Chernobog"), "Chernobog@Annihilation" },
+        { LocalizationHelper.GetString("LungmenOutskirts"), "LungmenOutskirts@Annihilation" },
+        { LocalizationHelper.GetString("LungmenDowntown"), "LungmenDowntown@Annihilation" },
+    };
+
+    private bool _useCustomAnnihilation = ConfigurationHelper.GetValue(ConfigurationKeys.UseCustomAnnihilation, false);
+
+    public bool UseCustomAnnihilation
+    {
+        get => _useCustomAnnihilation;
+        set
+        {
+            SetAndNotify(ref _useCustomAnnihilation, value);
+            ConfigurationHelper.SetValue(ConfigurationKeys.UseCustomAnnihilation, value.ToString());
+        }
+    }
+
+    private string _annihilationStage = ConfigurationHelper.GetValue(ConfigurationKeys.AnnihilationStage, "Annihilation");
+
+    public string AnnihilationStage
+    {
+        get => _annihilationStage;
+        set
+        {
+            SetAndNotify(ref _annihilationStage, value);
+            ConfigurationHelper.SetValue(ConfigurationKeys.AnnihilationStage, value);
+        }
+    }
+
+    private bool _isDrGrandet = ConfigurationHelper.GetValue(ConfigurationKeys.IsDrGrandet, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to use DrGrandet mode.
@@ -660,7 +705,7 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _useAlternateStage = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseAlternateStage, bool.FalseString));
+    private bool _useAlternateStage = ConfigurationHelper.GetValue(ConfigurationKeys.UseAlternateStage, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to use alternate stage.
@@ -679,7 +724,7 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _allowUseStoneSave = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.AllowUseStoneSave, bool.FalseString));
+    private bool _allowUseStoneSave = ConfigurationHelper.GetValue(ConfigurationKeys.AllowUseStoneSave, false);
 
     public bool AllowUseStoneSave
     {
@@ -707,7 +752,7 @@ public class FightSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private bool _useExpiringMedicine = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.UseExpiringMedicine, bool.FalseString));
+    private bool _useExpiringMedicine = ConfigurationHelper.GetValue(ConfigurationKeys.UseExpiringMedicine, false);
 
     public bool UseExpiringMedicine
     {
@@ -738,11 +783,11 @@ public class FightSettingsUserControlModel : TaskViewModel
                 UseAlternateStage = false;
             }
 
-            Instances.TaskQueueViewModel.UpdateStageList();
+            UpdateStageList();
         }
     }
 
-    private bool _hideSeries = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.HideSeries, bool.FalseString));
+    private bool _hideSeries = ConfigurationHelper.GetValue(ConfigurationKeys.HideSeries, false);
 
     /// <summary>
     /// Gets or sets a value indicating whether to hide series.
@@ -754,6 +799,18 @@ public class FightSettingsUserControlModel : TaskViewModel
         {
             SetAndNotify(ref _hideSeries, value);
             ConfigurationHelper.SetValue(ConfigurationKeys.HideSeries, value.ToString());
+        }
+    }
+
+    private bool _autoRestartOnDrop = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.AutoRestartOnDrop, bool.TrueString));
+
+    public bool AutoRestartOnDrop
+    {
+        get => _autoRestartOnDrop;
+        set
+        {
+            SetAndNotify(ref _autoRestartOnDrop, value);
+            ConfigurationHelper.SetValue(ConfigurationKeys.AutoRestartOnDrop, value.ToString());
         }
     }
 
@@ -791,10 +848,10 @@ public class FightSettingsUserControlModel : TaskViewModel
         var task = new AsstFightTask()
         {
             Stage = Stage,
-            Medicine = UseMedicine ? MedicineNumber : 0,
-            Stone = UseStone ? StoneNumber : 0,
+            Medicine = UseMedicine != false ? MedicineNumber : 0,
+            Stone = UseStoneDisplay ? StoneNumber : 0,
             Series = Series,
-            MaxTimes = HasTimesLimited ? MaxTimes : int.MaxValue,
+            MaxTimes = HasTimesLimited != false ? MaxTimes : int.MaxValue,
             ExpiringMedicine = UseExpiringMedicine ? 9999 : 0,
             IsDrGrandet = IsDrGrandet,
             ReportToPenguin = SettingsViewModel.GameSettings.EnablePenguin,
@@ -805,7 +862,12 @@ public class FightSettingsUserControlModel : TaskViewModel
             ClientType = SettingsViewModel.GameSettings.ClientType,
         };
 
-        if (IsSpecifiedDrops && !string.IsNullOrEmpty(DropsItemId))
+        if (Stage == "Annihilation" && UseCustomAnnihilation)
+        {
+            task.Stage = AnnihilationStage;
+        }
+
+        if (IsSpecifiedDrops != false && !string.IsNullOrEmpty(DropsItemId))
         {
             task.Drops.Add(DropsItemId, DropsQuantity);
         }
@@ -815,7 +877,7 @@ public class FightSettingsUserControlModel : TaskViewModel
 
     #region 双入口设置可见性
 
-    private bool _customInfrastPlanShowInFightSettings = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.CustomInfrastPlanShowInFightSettings, bool.FalseString));
+    private bool _customInfrastPlanShowInFightSettings = ConfigurationHelper.GetValue(ConfigurationKeys.CustomInfrastPlanShowInFightSettings, false);
 
     public bool CustomInfrastPlanShowInFightSettings
     {
@@ -828,4 +890,154 @@ public class FightSettingsUserControlModel : TaskViewModel
     }
 
     #endregion
+
+    #region 关卡列表更新
+
+    /// <summary>
+    /// Updates stage list.
+    /// 使用手动输入时，只更新关卡列表，不更新关卡选择
+    /// 使用隐藏当日不开放时，更新关卡列表，关卡选择为未开放的关卡时清空
+    /// 使用备选关卡时，更新关卡列表，关卡选择为未开放的关卡时在关卡列表中添加对应未开放关卡，避免清空导致进入上次关卡
+    /// 啥都不选时，更新关卡列表，关卡选择为未开放的关卡时在关卡列表中添加对应未开放关卡，避免清空导致进入上次关卡
+    /// 除手动输入外所有情况下，如果剩余理智为未开放的关卡，会被清空
+    /// </summary>
+    // FIXME: 被注入对象只能在private函数内使用，只有Model显示之后才会被注入。如果Model还没有触发OnInitialActivate时调用函数会NullPointerException
+    // 这个函数被列为public可见，意味着他注入对象前被调用
+    public void UpdateStageList()
+    {
+        Execute.PostToUIThreadAsync(() =>
+        {
+            var hideUnavailableStage = HideUnavailableStage;
+
+            Instances.TaskQueueViewModel.EnableSetFightParams = false;
+
+            var stage1 = Stage1 ?? string.Empty;
+            var stage2 = Stage2 ?? string.Empty;
+            var stage3 = Stage3 ?? string.Empty;
+            var stage4 = Stage4 ?? string.Empty;
+            var rss = RemainingSanityStage ?? string.Empty;
+
+            var tempStageList = hideUnavailableStage
+                ? Instances.StageManager.GetStageList(Instances.TaskQueueViewModel.CurDayOfWeek).ToList()
+                : Instances.StageManager.GetStageList().ToList();
+
+            var tempRemainingSanityStageList = Instances.StageManager.GetStageList().ToList();
+
+            if (CustomStageCode)
+            {
+                // 7%
+                // 使用自定义的时候不做处理
+            }
+            else if (hideUnavailableStage)
+            {
+                // 15%
+                stage1 = Instances.TaskQueueViewModel.GetValidStage(stage1);
+                stage2 = Instances.TaskQueueViewModel.GetValidStage(stage2);
+                stage3 = Instances.TaskQueueViewModel.GetValidStage(stage3);
+                stage4 = Instances.TaskQueueViewModel.GetValidStage(stage4);
+            }
+            else if (UseAlternateStage)
+            {
+                // 11%
+                AddStagesIfNotExist([stage1, stage2, stage3, stage4], tempStageList);
+            }
+            else
+            {
+                // 啥都没选
+                AddStageIfNotExist(stage1, tempStageList);
+
+                // 避免关闭了使用备用关卡后，始终添加备用关卡中的未开放关卡
+                stage2 = Instances.TaskQueueViewModel.GetValidStage(stage2);
+                stage3 = Instances.TaskQueueViewModel.GetValidStage(stage3);
+                stage4 = Instances.TaskQueueViewModel.GetValidStage(stage4);
+            }
+
+            // rss 如果结束后还选择了不开放的关卡，刷理智任务会报错
+            rss = Instances.TaskQueueViewModel.IsStageOpen(rss) ? rss : string.Empty;
+
+            if (tempRemainingSanityStageList.Any(item => item.Value == string.Empty))
+            {
+                var itemToRemove = tempRemainingSanityStageList.First(item => item.Value == string.Empty);
+                tempRemainingSanityStageList.Remove(itemToRemove);
+            }
+
+            tempRemainingSanityStageList.Insert(0, new CombinedData { Display = LocalizationHelper.GetString("NoUse"), Value = string.Empty });
+
+            UpdateObservableCollection(StageList, tempStageList);
+            UpdateObservableCollection(RemainingSanityStageList, tempRemainingSanityStageList);
+
+            _stage1Fallback = stage1;
+            Stage1 = stage1;
+            Stage2 = stage2;
+            Stage3 = stage3;
+            Stage4 = stage4;
+            RemainingSanityStage = rss;
+            if (!CustomStageCode)
+            {
+                RemoveNonExistStage();
+            }
+
+            Instances.TaskQueueViewModel.EnableSetFightParams = true;
+        });
+    }
+
+    private void AddStagesIfNotExist(IEnumerable<string> stages, List<CombinedData> stageList)
+    {
+        foreach (var stage in stages)
+        {
+            AddStageIfNotExist(stage, stageList);
+        }
+    }
+
+    private void AddStageIfNotExist(string stage, List<CombinedData> stageList)
+    {
+        if (stageList.Any(x => x.Value == stage))
+        {
+            return;
+        }
+
+        var stageInfo = Instances.StageManager.GetStageInfo(stage);
+        stageList.Add(stageInfo);
+    }
+
+    /// <summary>
+    /// 更新 ObservableCollection，确保不替换原集合，而是增删项
+    /// </summary>
+    /// <param name="originalCollection">原始 ObservableCollection</param>
+    /// <param name="newList">新的列表</param>
+    public static void UpdateObservableCollection(ObservableCollection<CombinedData> originalCollection, List<CombinedData> newList)
+    {
+        originalCollection.Clear();
+
+        foreach (var item in newList)
+        {
+            originalCollection.Add(item);
+        }
+    }
+
+    #endregion 关卡列表更新
+
+    public class SanityInfo
+    {
+        [JsonProperty("current_sanity")]
+        public int SanityCurrent { get; set; }
+
+        [JsonProperty("max_sanity")]
+        public int SanityMax { get; set; }
+
+        [JsonProperty("report_time")]
+        public DateTimeOffset ReportTime { get; set; }
+    }
+
+    public class FightTimes
+    {
+        [JsonProperty("sanity_cost")]
+        public int SanityCost { get; set; }
+
+        [JsonProperty("series")]
+        public int Series { get; set; }
+
+        [JsonProperty("times_finished")]
+        public int TimesFinished { get; set; }
+    }
 }

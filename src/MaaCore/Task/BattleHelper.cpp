@@ -12,13 +12,13 @@
 #include "Utils/ImageIo.hpp"
 #include "Utils/Logger.hpp"
 #include "Utils/NoWarningCV.h"
-#include "Utils/Ranges.hpp"
 #include "Utils/Time.hpp"
 #include "Vision/Battle/BattlefieldClassifier.h"
 #include "Vision/Battle/BattlefieldMatcher.h"
 #include "Vision/Matcher.h"
 #include "Vision/MultiMatcher.h"
 #include "Vision/RegionOCRer.h"
+#include <ranges>
 
 #include "Arknights-Tile-Pos/TileCalc2.hpp"
 
@@ -96,6 +96,40 @@ bool asst::BattleHelper::abandon()
     return ProcessTask(this_task(), { "RoguelikeBattleExitBegin" }).run();
 }
 
+template <typename T>
+requires std::ranges::range<T> && asst::OperAvatarPair<std::ranges::range_value_t<T>>
+std::optional<asst::BestMatcher::Result>
+    analyze_oper_with_cache(const asst::battle::DeploymentOper& oper, T&& avatar_cache)
+{
+    using namespace asst;
+
+    BestMatcher avatar_analyzer(oper.avatar);
+    avatar_analyzer.set_method(MatchMethod::Ccoeff);
+    if (oper.cooling) {
+        Log.trace("start matching cooling", oper.index);
+        static const auto cooling_threshold =
+            Task.get<MatchTaskInfo>("BattleAvatarCoolingData")->templ_thresholds.front();
+        static const auto cooling_mask_range = Task.get<MatchTaskInfo>("BattleAvatarCoolingData")->mask_ranges;
+        avatar_analyzer.set_threshold(cooling_threshold);
+        avatar_analyzer.set_mask_ranges(cooling_mask_range, true, true);
+    }
+    else {
+        static const auto threshold = Task.get<MatchTaskInfo>("BattleAvatarData")->templ_thresholds.front();
+        static const auto drone_threshold = Task.get<MatchTaskInfo>("BattleDroneAvatarData")->templ_thresholds.front();
+        avatar_analyzer.set_threshold(oper.role == Role::Drone ? drone_threshold : threshold);
+    }
+
+    for (const auto& [name, avatar] : avatar_cache) {
+        avatar_analyzer.append_templ(name, avatar);
+    }
+
+    if (avatar_analyzer.analyze()) {
+        return avatar_analyzer.get_result();
+    }
+
+    return std::nullopt;
+}
+
 bool asst::BattleHelper::update_deployment_(
     std::vector<battle::DeploymentOper>& cur_opers,
     const std::vector<battle::DeploymentOper>& old_deployment_opers,
@@ -126,12 +160,12 @@ bool asst::BattleHelper::update_deployment_(
     for (auto& oper : cur_opers) {
         bool is_analyzed = false;
         if (!old_deployment_opers.empty()) {
-            auto avatar =
-                old_deployment_opers |
-                views::filter([&](const battle::DeploymentOper& temp_oper) { return temp_oper.role == oper.role; }) |
-                views::transform([&](const battle::DeploymentOper& temp_oper) {
-                    return std::make_pair(temp_oper.name, temp_oper.avatar);
-                });
+            auto avatar = old_deployment_opers | std::views::filter([&](const battle::DeploymentOper& temp_oper) {
+                              return temp_oper.role == oper.role;
+                          }) |
+                          std::views::transform([&](const battle::DeploymentOper& temp_oper) {
+                              return std::make_pair(temp_oper.name, temp_oper.avatar);
+                          });
             const auto& result = analyze_oper_with_cache(oper, avatar);
             if (result) {
                 set_oper_name(oper, result->templ_info.name);
@@ -166,7 +200,7 @@ bool asst::BattleHelper::update_deployment_(
     // ————————————————————————————————————————
     // 匹配未知非冷却干员
     // ————————————————————————————————————————
-    if (ranges::count_if(unknown_opers, [](const DeploymentOper& it) { return !it.cooling; }) > 0) {
+    if (std::ranges::count_if(unknown_opers, [](const DeploymentOper& it) { return !it.cooling; }) > 0) {
         // 一个都没匹配上的，挨个点开来看一下
         LogTraceScope("rec unknown opers");
 
@@ -207,8 +241,9 @@ bool asst::BattleHelper::update_deployment_(
             if (re_matcher.analyze()) {
                 if (const auto& results = re_matcher.get_result(); !results.empty()) {
                     // 遍历结果，找到 y 最小的（之前选中的） rect
-                    auto min_rect_iter =
-                        ranges::min_element(results, [](const auto& a, const auto& b) { return a.rect.y < b.rect.y; });
+                    auto min_rect_iter = std::ranges::min_element(results, [](const auto& a, const auto& b) {
+                        return a.rect.y < b.rect.y;
+                    });
 
                     oper_rect = min_rect_iter->rect;
                 }
@@ -226,7 +261,9 @@ bool asst::BattleHelper::update_deployment(bool init, const cv::Mat& reusable, b
 
     if (init) {
         AvatarCache.remove_confusing_avatars(); // 移除小龙等不同技能很像的召唤物，防止错误识别
-        wait_until_start(false);
+        if (!wait_until_start(false)) {
+            return false;
+        }
     }
 
     cv::Mat image = init || reusable.empty() ? m_inst_helper.ctrler()->get_image() : reusable;
@@ -328,32 +365,36 @@ cv::Mat asst::BattleHelper::get_top_view(const cv::Mat& cam_img, bool side)
     return result;
 }
 
-bool asst::BattleHelper::update_kills(const cv::Mat& reusable)
+bool asst::BattleHelper::update_kills(const cv::Mat& image, const cv::Mat& image_prev)
 {
-    cv::Mat image = reusable.empty() ? m_inst_helper.ctrler()->get_image() : reusable;
     BattlefieldMatcher analyzer(image);
     analyzer.set_object_of_interest({ .kills = true });
+    analyzer.set_image_prev(image_prev);
     if (m_total_kills) {
         analyzer.set_total_kills_prompt(m_total_kills);
     }
     auto result_opt = analyzer.analyze();
-    if (!result_opt || !result_opt->kills) {
+    if (!result_opt || result_opt->kills.status == BattlefieldMatcher::MatchStatus::Invalid) {
         return false;
     }
-    std::tie(m_kills, m_total_kills) = result_opt->kills.value();
+    if (result_opt->kills.status == BattlefieldMatcher::MatchStatus::Success) {
+        std::tie(m_kills, m_total_kills) = result_opt->kills.value;
+    }
     return true;
 }
 
-bool asst::BattleHelper::update_cost(const cv::Mat& reusable)
+bool asst::BattleHelper::update_cost(const cv::Mat& image, const cv::Mat& image_prev)
 {
-    cv::Mat image = reusable.empty() ? m_inst_helper.ctrler()->get_image() : reusable;
     BattlefieldMatcher analyzer(image);
     analyzer.set_object_of_interest({ .costs = true });
+    analyzer.set_image_prev(image_prev);
     auto result_opt = analyzer.analyze();
-    if (!result_opt || !result_opt->costs) {
+    if (!result_opt || result_opt->costs.status == BattlefieldMatcher::MatchStatus::Invalid) {
         return false;
     }
-    m_cost = result_opt->costs.value();
+    else if (result_opt->costs.status == BattlefieldMatcher::MatchStatus::Success) {
+        m_cost = result_opt->costs.value;
+    }
     return true;
 }
 
@@ -590,11 +631,17 @@ bool asst::BattleHelper::wait_until_start(bool weak)
 {
     LogTraceFunction;
 
+    constexpr auto timeout_duration = std::chrono::minutes(1);
+    const auto start_time = std::chrono::steady_clock::now();
+
     cv::Mat image = m_inst_helper.ctrler()->get_image();
     while (!m_inst_helper.need_exit() && !check_in_battle(image, weak)) {
-        do_strategic_action(image);
-        std::this_thread::yield();
+        if (std::chrono::steady_clock::now() - start_time > timeout_duration) {
+            Log.warn("Timeout reached while waiting to start the battle.");
+            return false;
+        }
 
+        std::this_thread::yield();
         image = m_inst_helper.ctrler()->get_image();
     }
     return true;
@@ -704,17 +751,34 @@ void asst::BattleHelper::save_map(const cv::Mat& image)
     using namespace asst::utils::path_literals;
     const auto& MapRelativeDir = "debug"_p / "map"_p;
 
+    // 清理旧的 PNG 文件
+    static bool clean_png = true;
+    if (clean_png) {
+        for (const auto& entry : std::filesystem::directory_iterator(MapRelativeDir)) {
+            if (entry.path().extension() == ".png") {
+                std::error_code ec;
+                std::filesystem::remove(entry.path(), ec);
+                if (ec) {
+                    LogWarn << "Failed to remove png: " << entry.path() << ", " << ec.message();
+                }
+            }
+        }
+        clean_png = false;
+    }
+
     auto draw = image.clone();
+
     for (const auto& [loc, info] : m_normal_tile_info) {
         cv::circle(draw, cv::Point(info.pos.x, info.pos.y), 5, cv::Scalar(0, 255, 0), -1);
-        cv::putText(draw, loc.to_string(), cv::Point(info.pos.x - 30, info.pos.y), 1, 1.2, cv::Scalar(0, 0, 255), 2);
+        cv::putText(draw, loc.to_string(), cv::Point(info.pos.x - 30, info.pos.y), 1, 1.5, cv::Scalar(0, 0, 255), 2);
     }
 
     std::string suffix;
     if (++m_camera_count > 1) {
         suffix = "-" + std::to_string(m_camera_count);
     }
-    asst::imwrite(MapRelativeDir / asst::utils::path(m_stage_name + suffix + ".png"), draw);
+    std::vector<int> jpeg_params = { cv::IMWRITE_JPEG_QUALITY, 50, cv::IMWRITE_JPEG_OPTIMIZE, 1 };
+    asst::imwrite(MapRelativeDir / asst::utils::path(m_stage_name + suffix + ".jpeg"), draw, jpeg_params);
 }
 
 bool asst::BattleHelper::click_oper_on_deployment(const std::string& name)
@@ -830,7 +894,7 @@ bool asst::BattleHelper::click_skill(bool keep_waiting)
     if (!top_view.empty()) {
         using namespace asst::utils::path_literals;
         asst::imwrite(
-            "debug"_p / "skill"_p / asst::utils::path(m_stage_name + '_' + utils::get_time_filestem() + ".png"),
+            asst::utils::path(std::format("debug/skill/{}_{}.png", m_stage_name, utils::format_now_for_filename())),
             top_view);
     }
 #endif
@@ -910,7 +974,7 @@ bool asst::BattleHelper::move_camera(const std::pair<double, double>& delta)
     LogTraceFunction;
     Log.info("move", delta.first, delta.second);
 
-    update_kills();
+    update_kills(m_inst_helper.ctrler()->get_image());
 
     // 还没转场的时候
     if (m_kills != 0) {
@@ -959,45 +1023,13 @@ std::optional<asst::Rect> asst::BattleHelper::get_oper_rect_on_deployment(const 
 {
     LogTraceFunction;
 
-    auto oper_iter = ranges::find_if(m_cur_deployment_opers, [&](const auto& oper) { return oper.name == name; });
+    auto oper_iter = std::ranges::find_if(m_cur_deployment_opers, [&](const auto& oper) { return oper.name == name; });
     if (oper_iter == m_cur_deployment_opers.end()) {
         Log.error("No oper", name);
         return std::nullopt;
     }
 
     return oper_iter->rect;
-}
-
-template <typename T>
-requires asst::ranges::range<T> && asst::OperAvatarPair<asst::ranges::range_value_t<T>>
-std::optional<asst::BestMatcher::Result>
-    asst::BattleHelper::analyze_oper_with_cache(const asst::battle::DeploymentOper& oper, T&& avatar_cache)
-{
-    BestMatcher avatar_analyzer(oper.avatar);
-    avatar_analyzer.set_method(MatchMethod::Ccoeff);
-    if (oper.cooling) {
-        Log.trace("start matching cooling", oper.index);
-        static const auto cooling_threshold =
-            Task.get<MatchTaskInfo>("BattleAvatarCoolingData")->templ_thresholds.front();
-        static const auto cooling_mask_range = Task.get<MatchTaskInfo>("BattleAvatarCoolingData")->mask_ranges;
-        avatar_analyzer.set_threshold(cooling_threshold);
-        avatar_analyzer.set_mask_ranges(cooling_mask_range, true, true);
-    }
-    else {
-        static const auto threshold = Task.get<MatchTaskInfo>("BattleAvatarData")->templ_thresholds.front();
-        static const auto drone_threshold = Task.get<MatchTaskInfo>("BattleDroneAvatarData")->templ_thresholds.front();
-        avatar_analyzer.set_threshold(oper.role == Role::Drone ? drone_threshold : threshold);
-    }
-
-    for (const auto& [name, avatar] : avatar_cache) {
-        avatar_analyzer.append_templ(name, avatar);
-    }
-
-    if (avatar_analyzer.analyze()) {
-        return avatar_analyzer.get_result();
-    }
-
-    return std::nullopt;
 }
 
 void asst::BattleHelper::remove_cooling_from_battlefield(const battle::DeploymentOper& oper)

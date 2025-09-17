@@ -1,6 +1,6 @@
 // <copyright file="CopilotHelper.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,14 +10,18 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Models.Copilot;
+using MaaWpfGui.ViewModels.UserControl.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Semver;
+using Serilog;
 
 namespace MaaWpfGui.Helper;
 
@@ -25,16 +29,23 @@ public static class CopilotHelper
 {
     public static async Task<(PrtsStatus Status, PrtsCopilotModel? Copilot)> RequestCopilotAsync(int copilotId)
     {
-        var jsonResponse = await Instances.HttpService.GetStringAsync(new Uri(MaaUrls.PrtsPlusCopilotGet + copilotId));
-        if (jsonResponse is null)
+        try
         {
-            return (PrtsStatus.NetworkError, null);
+            var response = await Instances.HttpService.GetAsync(new Uri(MaaUrls.PrtsPlusCopilotGet + copilotId));
+            response.EnsureSuccessStatusCode();
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var json = JsonConvert.DeserializeObject<PrtsCopilotModel>(jsonResponse);
+            if (json != null && json.StatusCode == 200)
+            {
+                return (PrtsStatus.Success, json);
+            }
         }
-
-        var json = JsonConvert.DeserializeObject<PrtsCopilotModel>(jsonResponse);
-        if (json != null && json.StatusCode == 200)
+        catch (Exception e)
         {
-            return (PrtsStatus.Success, json);
+            Instances.CopilotViewModel.AddLog(LocalizationHelper.GetString("NetworkServiceError"), UiLogColor.Error, showTime: false);
+            Instances.CopilotViewModel.AddLog($"{e.Message}", UiLogColor.Error, showTime: false);
+            Log.Error(e.ToString());
+            return (PrtsStatus.NetworkError, null);
         }
 
         return (PrtsStatus.NotFound, null);
@@ -42,16 +53,23 @@ public static class CopilotHelper
 
     public static async Task<(PrtsStatus Status, PrtsCopilotSetModel? CopilotSet)> RequestCopilotSetAsync(int copilotId)
     {
-        var jsonResponse = await Instances.HttpService.GetStringAsync(new Uri(MaaUrls.PrtsPlusCopilotSetGet + copilotId));
-        if (jsonResponse is null)
+        try
         {
-            return (PrtsStatus.NetworkError, null);
+            var response = await Instances.HttpService.GetAsync(new Uri(MaaUrls.PrtsPlusCopilotSetGet + copilotId));
+            response.EnsureSuccessStatusCode();
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var json = JsonConvert.DeserializeObject<PrtsCopilotSetModel>(jsonResponse);
+            if (json != null && json.StatusCode == 200)
+            {
+                return (PrtsStatus.Success, json);
+            }
         }
-
-        var json = JsonConvert.DeserializeObject<PrtsCopilotSetModel>(jsonResponse);
-        if (json != null && json.StatusCode == 200)
+        catch (Exception e)
         {
-            return (PrtsStatus.Success, json);
+            Instances.CopilotViewModel.AddLog(LocalizationHelper.GetString("NetworkServiceError"), UiLogColor.Error, showTime: false);
+            Instances.CopilotViewModel.AddLog($"{e.Message}", UiLogColor.Error, showTime: false);
+            Log.Error(e.ToString());
+            return (PrtsStatus.NetworkError, null);
         }
 
         return (PrtsStatus.NotFound, null);
@@ -208,11 +226,49 @@ public static class CopilotHelper
                 // 根据 "type" 字段判断类型
                 if (obj.TryGetValue("type", StringComparison.OrdinalIgnoreCase, out var typeToken) && typeToken.ToString() == "SSS")
                 {
-                    return obj.ToObject<SSSCopilotModel>();
+                    var task = obj.ToObject<SSSCopilotModel>();
+                    if (!Instances.VersionUpdateViewModel.IsDebugVersion())
+                    {
+                        bool curParsed = SemVersion.TryParse(VersionUpdateSettingsUserControlModel.CoreVersion, SemVersionStyles.AllowLowerV, out var currentVer);
+                        bool require = SemVersion.TryParse(task?.MinimumRequired, SemVersionStyles.AllowLowerV, out var requireVer);
+                        if (!curParsed)
+                        {
+                            throw new JsonSerializationException($"Unable to parse Maa version: {VersionUpdateSettingsUserControlModel.CoreVersion}");
+                        }
+                        else if (!require)
+                        {
+                            throw new JsonSerializationException($"Unable to parse required version: {task?.MinimumRequired}");
+                        }
+                        else if (currentVer!.CompareSortOrderTo(requireVer) < 0)
+                        {
+                            throw new JsonSerializationException($"Current Maa version is lower than required version, require: {require}");
+                        }
+                    }
+
+                    return task;
                 }
                 else
                 {
-                    return obj.ToObject<CopilotModel>();
+                    var task = obj.ToObject<CopilotModel>();
+                    if (!Instances.VersionUpdateViewModel.IsDebugVersion())
+                    {
+                        bool curParsed = SemVersion.TryParse(VersionUpdateSettingsUserControlModel.CoreVersion, SemVersionStyles.AllowLowerV, out var currentVer);
+                        bool require = SemVersion.TryParse(task?.MinimumRequired, SemVersionStyles.AllowLowerV, out var requireVer);
+                        if (!curParsed)
+                        {
+                            throw new JsonSerializationException($"Unable to parse Maa version: {VersionUpdateSettingsUserControlModel.CoreVersion}");
+                        }
+                        else if (!require)
+                        {
+                            throw new JsonSerializationException($"Unable to parse required version: {task?.MinimumRequired}");
+                        }
+                        else if (currentVer!.CompareSortOrderTo(requireVer) < 0)
+                        {
+                            throw new JsonSerializationException($"Current Maa version is lower than required version, require: {requireVer}");
+                        }
+                    }
+
+                    return task;
                 }
             }
 

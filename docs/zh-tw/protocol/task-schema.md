@@ -5,7 +5,7 @@ icon: material-symbols:task
 
 # 任務流程協議
 
-`resource/tasks.json` 的使用方法及各欄位說明
+`resource/tasks` 的使用方法及各欄位說明
 
 ::: tip
 請注意 JSON 檔是不支援註解的，下方的註解僅用於說明，請勿直接複製使用
@@ -91,6 +91,9 @@ icon: material-symbols:task
         "specialParams": [ int, ... ],      // 某些特殊辨識器需要的參數
                                             // 額外的，當 action 為 Swipe 時可選，[0] 表示 duration，[1] 表示 是否啟用額外滑動
 
+        "highResolutionSwipeFix": false,    // 可選項，是否啟用高解析度滑動修正，目前應該只有關卡導航未使用 Unity 滑動方式所以需要開啟
+                                            // 預設為 false
+
         /* 以下欄位僅當 algorithm 為 MatchTemplate 時有效 */
 
         "template": "xxx.png",              // 可選項，要匹配的圖片檔案名稱
@@ -104,7 +107,7 @@ icon: material-symbols:task
                                             // 然後設定 "maskRange" 的範圍為 [ 1, 255 ]，匹配的時候立刻忽略塗黑的部分
 
         "colorScales": [                    // 當 method 為 HSVCount 或 RGBCount 時有效且必選，數色掩碼範圍。
-            [                               // list<array<array<int, 3>, 2> | array<int, 2>>
+            [                               // list<array<array<int, 3>, 2>> / list<array<int, 2>>
                 [23, 150, 40],              // 結構為 [[lower1, upper1], [lower2, upper2], ...]
                 [25, 230, 150]              //     內層為 int 時是灰度，
             ],                              //     　　為 array<int, 3> 時是三通道顏色，method 決定其是 RGB 或 HSV；
@@ -140,12 +143,37 @@ icon: material-symbols:task
         "isAscii": false,                   // 可選項，要辨識的文字內容是否為 ASCII 碼字元
                                             // 不填寫預設 false
 
-        "withoutDet": false                 // 可選項，是否不使用檢測模型
+        "withoutDet": false,                // 可選項，是否不使用檢測模型
                                             // 不填寫預設 false
 
-        /* 以下欄位僅當 algorithm 為 Hash 時有效 */
-        // 演算法不成熟，僅部分特例情況中用到了，暫不推薦使用
-        // Todo
+        /* 以下欄位僅當 algorithm 為 OcrDetect 且 withoutDet 為 true 時有效 */
+
+        "useRaw": true,                     // 可選項，是否使用原圖匹配
+                                            // 不填寫預設 true，false 時為灰階匹配
+
+        "binThreshold": [140, 255],         // 可選項，灰階二值化閾值（預設為 [140, 255]）
+                                            // 灰階值不在範圍的像素會被視為背景，排除在文字區域之外
+                                            // 最終僅保留 [lower, upper] 區間的像素作為文字前景
+
+        /* 以下欄位僅當 algorithm 為 JustReturn 且 action 為 Input 時有效 */
+
+        "inputText": "A string text.",      // 必選項，要輸入的文字內容，為字串格式
+
+        /* 以下欄位僅當 algorithm 為 FeatureMatch 時有效 */
+
+        "template": "xxx.png",              // 可選項，要符合的圖片檔案名，可以是字串或字串列表
+                                            // 預設 "任務名稱.png"
+
+        "count": 4,                         // 匹配的特徵點的數量要求 (閾值), 預設值 = 4
+
+        "ratio": 0.6,                       // KNN 匹配演算法的距離比值, [0 - 1.0], 越大則匹配越寬鬆, 更容易連線. 預設0.6
+
+        "detector": "SIFT",                 // 特徵點偵測器類型, 可選值為 SIFT, ORB, BRISK, KAZE, AKAZE, SURF; 預設值 = SIFT
+                                            // SIFT: 計算複雜度高，具有尺度不變性、旋轉不變性。效果最好。 
+                                            // ORB: 計算速度非常快，具有旋轉不變性。但不具有尺度不變性。 
+                                            // BRISK: 計算速度非常快，具有尺度不變性、旋轉不變性。 
+                                            // KAZE: 適用於2D和3D影像，具有尺度不變性、旋轉不變性。 
+                                            // AKAZE: 計算速度較快，具有尺度不變性、旋轉不變性。
     }
 }
 ```

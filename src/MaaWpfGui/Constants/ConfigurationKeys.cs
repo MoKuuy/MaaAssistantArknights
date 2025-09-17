@@ -1,6 +1,6 @@
 // <copyright file="ConfigurationKeys.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,8 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
+using JetBrains.Annotations;
 
 namespace MaaWpfGui.Constants
 {
@@ -23,10 +25,10 @@ namespace MaaWpfGui.Constants
         public const string GlobalConfiguration = "Global";
         public const string ConfigurationMap = "Configurations";
 
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public const string ConfigurationData = "Data";
 
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public const string ConfigurationCron = "Cron";
 
         public const string Localization = "GUI.Localization";
@@ -73,6 +75,7 @@ namespace MaaWpfGui.Constants
         public const string MuMu12Display = "Connect.MuMu12Display";
         public const string LdPlayerExtrasEnabled = "Connect.LdPlayerExtras.Enabled";
         public const string LdPlayerEmulatorPath = "Connect.LdPlayerEmulatorPath";
+        public const string LdPlayerManualSetIndex = "Connect.LdPlayerManualSetIndex";
         public const string LdPlayerIndex = "Connect.LdPlayerIndex";
         public const string RetryOnAdbDisconnected = "Connect.RetryOnDisconnected";
         public const string AllowAdbRestart = "Connect.AllowADBRestart";
@@ -82,6 +85,7 @@ namespace MaaWpfGui.Constants
         public const string TouchMode = "Connect.TouchMode";
         public const string AdbReplaced = "Connect.AdbReplaced";
 
+        public const string StartGame = "Start.StartGame";
         public const string ClientType = "Start.ClientType";
         public const string AccountName = "Start.AccountName";
         public const string RunDirectly = "Start.RunDirectly";
@@ -90,6 +94,8 @@ namespace MaaWpfGui.Constants
         public const string EmulatorPath = "Start.EmulatorPath";
         public const string EmulatorAddCommand = "Start.EmulatorAddCommand";
         public const string EmulatorWaitSeconds = "Start.EmulatorWaitSeconds";
+
+        // 仅在刷理智的任务中会生效，前缀需要修改
         public const string AutoRestartOnDrop = "Start.AutoRestartOnDrop";
         public const string StartsWithScript = "Start.StartsWithScript";
         public const string EndsWithScript = "Start.EndsWithScript";
@@ -105,13 +111,16 @@ namespace MaaWpfGui.Constants
         public const string AutoSetTime = "Recruit.AutoSetTime";
         public const string RecruitmentShowPotential = "Recruit.ShowPotential";
 
+        public const string DepotResult = "Depot.DepotResult";
+
         public const string InfrastMode = "Infrast.InfrastMode";
         public const string DormThreshold = "Infrast.DormThreshold";
         public const string UsesOfDrones = "Infrast.UsesOfDrones";
         public const string InfrastReceptionMessageBoardReceive = "Infrast.ReceptionMessageBoardReceive";
+        public const string InfrastReceptionClueExchange = "Infrast.ReceptionClueExchange";
         public const string ContinueTraining = "Infrast.ContinueTraining";
         public const string DefaultInfrast = "Infrast.DefaultInfrast";
-        public const string IsCustomInfrastFileReadOnly = "Infrast.IsCustomInfrastFileReadOnly";
+        public const string IsCustomInfrastFileReadOnly = "Infrast.IsCustomInfrastFileReadOnly"; // 已废弃
         public const string DormFilterNotStationedEnabled = "Infrast.DormFilterNotStationedEnabled";
         public const string DormTrustEnabled = "Infrast.DormTrustEnabled";
         public const string OriginiumShardAutoReplenishment = "Infrast.OriginiumShardAutoReplenishment";
@@ -134,7 +143,6 @@ namespace MaaWpfGui.Constants
         public const string RoguelikeStartWithEliteTwo = "Roguelike.RoguelikeStartWithEliteTwo";
         public const string RoguelikeOnlyStartWithEliteTwo = "Roguelike.RoguelikeOnlyStartWithEliteTwo";
         public const string RoguelikeStartWithSelectList = "Roguelike.RoguelikeStartWithSelectList";
-        public const string RoguelikeStartWithTwoIdeas = "Roguelike.RoguelikeStartWithTwoIdeas";
         public const string Roguelike3FirstFloorFoldartal = "Roguelike.Roguelike3FirstFloorFoldartal";
         public const string Roguelike3FirstFloorFoldartals = "Roguelike.Roguelike3StartFloorFoldartal";
         public const string Roguelike3NewSquad2StartingFoldartal = "Roguelike.Roguelike3NewSquad2StartingFoldartal";
@@ -162,6 +170,7 @@ namespace MaaWpfGui.Constants
         public const string ReclamationToolToCraft = "Reclamation.ToolToCraft";
         public const string ReclamationIncrementMode = "Reclamation.ReclamationIncrementMode";
         public const string ReclamationMaxCraftCountPerRound = "Reclamation.ReclamationMaxCraftCountPerRound";
+        public const string ReclamationClearStore = "Reclamation.ReclamationClearStore";
 
         public const string RecruitMaxTimes = "AutoRecruit.MaxTimes";
         public const string AutoRecruitFirstList = "AutoRecruit.AutoRecruitFirstList";
@@ -192,12 +201,13 @@ namespace MaaWpfGui.Constants
 
         public const string ReceiveAward = "Mission.ReceiveAward";
         public const string ReceiveMail = "Mission.ReceiveMail";
-        public const string ReceiveFreeRecruit = "Mission.ReceiveFreeRecruit";
+        public const string ReceiveFreeGacha = "Mission.ReceiveFreeRecruit";
         public const string ReceiveOrundum = "Mission.ReceiveOrundum";
         public const string ReceiveMining = "Mission.ReceiveMining";
         public const string ReceiveSpecialAccess = "Mission.ReceiveSpecialAccess";
         public const string CopilotAddUserAdditional = "Copilot.AddUserAdditional";
         public const string CopilotUserAdditional = "Copilot.UserAdditional";
+        public const string CopilotSelectFormation = "Copilot.SelectFormation";
         public const string CopilotLoopTimes = "Copilot.LoopTimes";
         public const string CopilotTaskList = "Copilot.CopilotTaskList";
         public const string UpdateProxy = "VersionUpdate.Proxy";
@@ -208,6 +218,7 @@ namespace MaaWpfGui.Constants
         public const string UpdateSource = "VersionUpdate.ResourceUpdateSource";
         public const string ForceGithubGlobalSource = "VersionUpdate.UpdateSource.ForceGithubGlobalSource";
         public const string MirrorChyanCdk = "VersionUpdate.ResourceUpdateSource.MirrorChyanCdk";
+        public const string MirrorChyanCdkExpiredTime = "VersionUpdate.UpdateSource.MirrorChyanCdkExpired";
         public const string StartupUpdateCheck = "VersionUpdate.StartupUpdateCheck";
         public const string UpdateAutoCheck = "VersionUpdate.ScheduledUpdateCheck";
         public const string ResourceApi = "VersionUpdate.ResourceApi";
@@ -215,7 +226,7 @@ namespace MaaWpfGui.Constants
         public const string HasAcknowledgedNightlyWarning = "VersionUpdate.HasAcknowledgedNightlyWarning";
 
         // 这个已经废弃了，还要留着吗？
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public const string UseAria2 = "VersionUpdate.UseAria2";
 
         public const string AutoDownloadUpdatePackage = "VersionUpdate.AutoDownloadUpdatePackage";
@@ -239,6 +250,9 @@ namespace MaaWpfGui.Constants
         public const string Stage1 = "MainFunction.Stage1";
         public const string Stage2 = "MainFunction.Stage2";
         public const string Stage3 = "MainFunction.Stage3";
+        public const string Stage4 = "MainFunction.Stage4";
+        public const string UseCustomAnnihilation = "MainFunction.Annihilation.UseCustom";
+        public const string AnnihilationStage = "MainFunction.Annihilation.Stage";
         public const string UseMedicine = "MainFunction.UseMedicine";
         public const string UseMedicineQuantity = "MainFunction.UseMedicine.Quantity";
         public const string UseStone = "MainFunction.UseStone";
@@ -255,6 +269,7 @@ namespace MaaWpfGui.Constants
         public const string RemoteControlReportStatusUri = "RemoteControl.RemoteControlReportStatusUri";
         public const string RemoteControlUserIdentity = "RemoteControl.RemoteControlUserIdentity";
         public const string RemoteControlDeviceIdentity = "RemoteControl.RemoteControlDeviceIdentity";
+        public const string RemoteControlPollIntervalMs = "RemoteControl.RemoteControlPollIntervalMs";
 
         public const string ExternalNotificationEnabled = "ExternalNotification.Enabled";
         public const string ExternalNotificationSendWhenComplete = "ExternalNotification.SendWhenComplete";
@@ -282,6 +297,8 @@ namespace MaaWpfGui.Constants
         public const string ExternalNotificationQmsgKey = "ExternalNotification.Qmsg.Key";
         public const string ExternalNotificationQmsgUser = "ExternalNotification.Qmsg.User";
         public const string ExternalNotificationQmsgBot = "ExternalNotification.Qmsg.Bot";
+        public const string ExternalNotificationCustomWebhookUrl = "ExternalNotification.CustomWebhook.Url";
+        public const string ExternalNotificationCustomWebhookBody = "ExternalNotification.CustomWebhook.Body";
 
         public const string PerformanceUseGpu = "Performance.UseGpu";
         public const string PerformancePreferredGpuDescription = "Performance.PreferredGpuDescription";
@@ -311,6 +328,9 @@ namespace MaaWpfGui.Constants
         public const string DebugTaskName = "Debug.TaskName";
 
         public const string MiniGameTaskName = "MiniGame.TaskName";
+
+        public const string AchievementPopupDisabled = "Achievement.PopupDisabled";
+        public const string AchievementPopupAutoClose = "Achievement.PopupAutoClose";
 
         // public const string AnnouncementInfo = "Announcement.AnnouncementInfo";// 已迁移
         // public const string DoNotRemindThisAnnouncementAgain = "Announcement.DoNotRemindThisAnnouncementAgain";// 已迁移

@@ -4,41 +4,9 @@
 
 #include "TilePack.h"
 #include "Utils/Logger.hpp"
-#include "Utils/NoWarningCPR.h"
 
 using namespace asst::battle;
 using namespace asst::battle::copilot;
-
-bool asst::CopilotConfig::parse_magic_code(const std::string& copilot_magic_code)
-{
-    if (copilot_magic_code.empty()) {
-        Log.error("copilot_magic_code is empty");
-        return false;
-    }
-
-    cpr::Response response =
-        cpr::Get(cpr::Url("https://prts.maa.plus/copilot/get/" + copilot_magic_code), cpr::Timeout { 10000 });
-
-    if (response.status_code != 200) {
-        Log.error("copilot_magic_code request failed");
-        return false;
-    }
-
-    auto json = json::parse(response.text);
-
-    if (json && json->contains("status_code") && json->at("status_code").as_integer() == 200) {
-        if (json->contains("data") && json->at("data").contains("content")) {
-            auto content_str = json->at("data").at("content").as_string();
-            auto content = json::parse(content_str);
-            if (content) {
-                return parse(*content);
-            }
-        }
-    }
-
-    Log.error("using copilot_code failed, response:", response.text);
-    return false;
-}
 
 void asst::CopilotConfig::clear()
 {
@@ -80,6 +48,29 @@ asst::battle::copilot::OperUsageGroups asst::CopilotConfig::parse_groups(const j
 
     battle::copilot::OperUsageGroups groups;
 
+    if (auto opt = json.find<json::array>("opers")) {
+        for (const auto& oper_info : opt.value()) {
+            OperUsage oper;
+            oper.name = oper_info.at("name").as_string();
+            oper.skill = oper_info.get("skill", 1);
+            oper.skill_usage = static_cast<battle::SkillUsage>(oper_info.get("skill_usage", 0));
+            oper.skill_times = oper_info.get("skill_times", 1); // 使用技能的次数，默认为 1，兼容曾经的作业
+
+            // 解析练度需求
+            if (auto req_opt = oper_info.find("requirements")) {
+                // oper.requirements.elite = req_opt->get("elite", 0);
+                // oper.requirements.level = req_opt->get("level", 0);
+                // oper.requirements.skill_level = req_opt->get("skill_level", 0);
+                oper.requirements.module = req_opt->get("module", -1);
+                // oper.requirements.potentiality = req_opt->get("potentiality", 0);
+            }
+
+            // 单个干员的，干员名直接作为组名
+            std::string group_name = oper.name;
+            groups.emplace_back(OperUsageGroup { std::move(group_name), std::vector { std::move(oper) } });
+        }
+    }
+
     if (auto opt = json.find<json::array>("groups")) {
         for (const auto& group_info : opt.value()) {
             std::string group_name = group_info.at("name").as_string();
@@ -90,23 +81,19 @@ asst::battle::copilot::OperUsageGroups asst::CopilotConfig::parse_groups(const j
                 oper.skill = oper_info.get("skill", 1);
                 oper.skill_usage = static_cast<battle::SkillUsage>(oper_info.get("skill_usage", 0));
                 oper.skill_times = oper_info.get("skill_times", 1); // 使用技能的次数，默认为 1，兼容曾经的作业
+
+                // 解析练度需求
+                if (auto req_opt = oper_info.find("requirements")) {
+                    // oper.requirements.elite = req_opt->get("elite", 0);
+                    // oper.requirements.level = req_opt->get("level", 0);
+                    // oper.requirements.skill_level = req_opt->get("skill_level", 0);
+                    oper.requirements.module = req_opt->get("module", -1);
+                    // oper.requirements.potentiality = req_opt->get("potentiality", 0);
+                }
+
                 oper_vec.emplace_back(std::move(oper));
             }
-            groups.emplace(std::move(group_name), std::move(oper_vec));
-        }
-    }
-
-    if (auto opt = json.find<json::array>("opers")) {
-        for (const auto& oper_info : opt.value()) {
-            OperUsage oper;
-            oper.name = oper_info.at("name").as_string();
-            oper.skill = oper_info.get("skill", 1);
-            oper.skill_usage = static_cast<battle::SkillUsage>(oper_info.get("skill_usage", 0));
-            oper.skill_times = oper_info.get("skill_times", 1); // 使用技能的次数，默认为 1，兼容曾经的作业
-
-            // 单个干员的，干员名直接作为组名
-            std::string group_name = oper.name;
-            groups.emplace(std::move(group_name), std::vector { std::move(oper) });
+            groups.emplace_back(OperUsageGroup { std::move(group_name), std::move(oper_vec) });
         }
     }
 

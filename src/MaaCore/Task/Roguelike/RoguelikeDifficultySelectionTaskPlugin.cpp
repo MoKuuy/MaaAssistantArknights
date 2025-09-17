@@ -4,22 +4,41 @@
 #include "Controller/Controller.h"
 #include "Task/ProcessTask.h"
 #include "Utils/Logger.hpp"
+#include "Vision/Matcher.h"
 #include "Vision/OCRer.h"
 
 bool asst::RoguelikeDifficultySelectionTaskPlugin::load_params([[maybe_unused]] const json::value& params)
 {
-    // 集成战略 <傀影与猩红孤钻> 的难度选项没有数字标注，暂不支持难度选择功能
-    if (m_config->get_theme() == RoguelikeTheme::Phantom) {
-        return false;
-    }
+    const RoguelikeMode mode = m_config->get_mode();
 
     // 深入调查和月度小队模式不需要选择难度
-    if (m_config->get_mode() == RoguelikeMode::Exploration || m_config->get_mode() == RoguelikeMode::Squad) {
+    if (mode == RoguelikeMode::Exploration || mode == RoguelikeMode::Squad) {
         return false;
     }
 
-    auto opt = params.find<int>("difficulty");
-    return opt && *opt != -1;
+    // 为刷开局模式设置专用难度
+    if (mode == RoguelikeMode::Collectible) {
+        if (m_config->get_difficulty() == -1) {
+            m_collectible_difficulty = -1; // 当前难度只能用当前难度烧水
+        }
+        else {
+            const std::string& theme = m_config->get_theme();
+            const std::string& squad = params.get("squad", "");
+            const std::string& collectible_mode_squad = params.get("collectible_mode_squad", squad);
+            if (theme == RoguelikeTheme::JieGarden && collectible_mode_squad == "指挥分队" &&
+                // 界园指挥分队可用 3 难快速烧水
+                m_config->get_difficulty() >= 3) {
+                m_collectible_difficulty = 3;
+            }
+            else {
+                m_collectible_difficulty = 0;
+            }
+        }
+    }
+
+    /*auto opt = params.find<int>("difficulty");
+    return opt && *opt != -1;*/
+    return true;
 }
 
 bool asst::RoguelikeDifficultySelectionTaskPlugin::verify(AsstMsg msg, const json::value& details) const
@@ -40,8 +59,11 @@ bool asst::RoguelikeDifficultySelectionTaskPlugin::verify(AsstMsg msg, const jso
     if (task_view.starts_with(roguelike_name)) {
         task_view.remove_prefix(roguelike_name.length());
     }
-    if (task_view == "Roguelike@StartExplore") {
-        return true;
+    if (task_view.ends_with("Roguelike@GamePass")) {
+        m_has_changed = false;
+    }
+    if (task_view == "Roguelike@StartExplore") { // 烧水时候调来调去的干脆不走
+        return m_config->get_mode() == RoguelikeMode::Collectible || !m_has_changed;
     }
     else {
         return false;
@@ -56,57 +78,114 @@ bool asst::RoguelikeDifficultySelectionTaskPlugin::_run()
         Log.info(__FUNCTION__, "| Running for collectible");
     }
 
-    const int difficulty = m_config->get_run_for_collectible() ? 0 : m_config->get_difficulty();
+    const int difficulty = m_config->get_run_for_collectible() ? m_collectible_difficulty : m_config->get_difficulty();
     Log.info(__FUNCTION__, "| current_difficulty:", m_current_difficulty, "next difficulty:", difficulty);
 
     // 仅在插件记录的当前难度与目标难度不一致时重新选择难度
-    if (m_current_difficulty != difficulty) {
-        select_difficulty(difficulty);
-    }
+    select_difficulty(difficulty);
 
+    m_has_changed = true;
     return true;
+}
+
+int asst::RoguelikeDifficultySelectionTaskPlugin::detect_current_difficulty() const
+{
+    LogTraceFunction;
+
+    const cv::Mat image = ctrler()->get_image();
+    OCRer analyzer(image);
+    analyzer.set_task_info("Roguelike@ChooseDifficulty_AnalyzeCurrentDifficulty");
+    if (analyzer.analyze()) {
+        const std::string text = analyzer.get_result().front().text;
+        Log.info("Detected difficulty text:", text);
+        int difficulty;
+        if (!utils::chars_to_number(text, difficulty)) {
+            Log.error("Failed to convert difficulty text to number. Text =", text);
+            return -1;
+        }
+        return difficulty;
+    }
+    else {
+        Log.error("OCR failed. Cannot detect difficulty.");
+        return -1;
+    }
 }
 
 bool asst::RoguelikeDifficultySelectionTaskPlugin::select_difficulty(const int difficulty)
 {
     LogTraceFunction;
 
-    if (difficulty >= MAX_DIFFICULTY) {
-        ProcessTask(*this, { m_config->get_theme() + "@Roguelike@ChooseDifficulty_Hardest" }).run();
+    const std::string& theme = m_config->get_theme();
+    static std::unordered_set<std::string> initialized_themes;
+
+    if (!initialized_themes.contains(theme)) {
+        ProcessTask(*this, { theme + "@Roguelike@ChooseDifficultyEnter" }).run();
+
+        // 第一次运行肉鸽或者重装游戏后没有难度按钮，先判断下有没有 Confirm，没有就点一下 StartExplore
+        OCRer confirm_matcher(ctrler()->get_image());
+        confirm_matcher.set_task_info(theme + "@Roguelike@ChooseDifficultyConfirm");
+        if (!confirm_matcher.analyze()) {
+            Log.warn("Failed to find difficulty selection UI. Try to click Roguelike@StartExplore.");
+            Matcher start_explore_matcher(ctrler()->get_image());
+            start_explore_matcher.set_task_info(theme + "@Roguelike@StartExplore");
+            if (start_explore_matcher.analyze()) {
+                ctrler()->click(start_explore_matcher.get_result().rect);
+            }
+            else {
+                Log.error("Failed to find Roguelike@StartExplore button. Cannot proceed with difficulty selection.");
+                return false;
+            }
+        }
+
+        if (difficulty == m_current_difficulty) {
+            Log.info("Current difficulty is already set to the target difficulty:", difficulty);
+            ProcessTask(*this, { theme + "@Roguelike@ChooseDifficultyConfirm" }).run();
+            initialized_themes.insert(theme);
+            return true;
+        }
+        initialized_themes.insert(theme);
+    }
+    else {
+        if (difficulty == m_current_difficulty) {
+            Log.info("Current difficulty is already set to the target difficulty:", difficulty);
+            return true;
+        }
+        ProcessTask(*this, { theme + "@Roguelike@ChooseDifficultyEnter" }).run();
+    }
+
+    if (difficulty == INT_MAX) {
+        ProcessTask(*this, { "SwipeToTheDown" }).run();
+        ProcessTask(*this, { "SwipeToTheDown" }).run();
+        m_current_difficulty = detect_current_difficulty();
     }
     else if (difficulty == 0) {
-        ProcessTask(*this, { m_config->get_theme() + "@Roguelike@ChooseDifficulty_Easiest" }).run();
+        ProcessTask(*this, { "SwipeToTheUp" }).run();
+        ProcessTask(*this, { "SwipeToTheUp" }).run();
+        m_current_difficulty = detect_current_difficulty();
     }
     else {
-        // 从最高难度依次点下来
-        ProcessTask(*this, { m_config->get_theme() + "@Roguelike@ChooseDifficulty_Hardest" }).run();
-        std::vector<std::string> difficulty_list;
-        for (int i = MAX_DIFFICULTY; i >= difficulty; --i) { // 难度识别内容为 MAX_DIFFICULTY ~ difficulty
-            difficulty_list.push_back(std::to_string(i));
-        }
-        Task.get<OcrTaskInfo>(m_config->get_theme() + "@Roguelike@ChooseDifficulty_Specified")->text = difficulty_list;
-        ProcessTask(*this, { m_config->get_theme() + "@Roguelike@ChooseDifficulty_Specified", "Stop" }).run();
-    }
-
-    // 识别当前难度
-    const cv::Mat image = ctrler()->get_image();
-    OCRer current_difficulty_analyzer(image);
-    current_difficulty_analyzer.set_task_info("Roguelike@ChooseDifficulty_AnalyzeCurrentDifficulty");
-    if (current_difficulty_analyzer.analyze()) {
-        const std::string current_difficulty_text = current_difficulty_analyzer.get_result().front().text;
-        Log.info(__FUNCTION__, "| Current difficulty text is", current_difficulty_text);
-        if (!utils::chars_to_number(current_difficulty_text, m_current_difficulty)) {
-            Log.error("Fail to convert current difficulty text to int, reset current difficulty to 0");
-            m_current_difficulty = 0;
+        m_current_difficulty = detect_current_difficulty();
+        Log.info("Target difficulty:", difficulty);
+        Log.info("Current difficulty:", m_current_difficulty);
+        if (m_current_difficulty != difficulty) {
+            if (m_current_difficulty < difficulty) {
+                ProcessTask(*this, { "SwipeToTheDown" }).run();
+                ProcessTask(*this, { "SwipeToTheDown" }).run();
+            }
+            std::vector<std::string> difficulty_list;
+            for (int i = 20; i >= difficulty; --i) { // 难度识别内容为 20 ~ difficulty
+                difficulty_list.push_back(std::to_string(i));
+            }
+            Task.get<OcrTaskInfo>(theme + "@Roguelike@ChooseDifficulty_Specified")->text = difficulty_list;
+            ProcessTask(*this, { theme + "@Roguelike@ChooseDifficulty_Specified", "Stop" }).run();
+            m_current_difficulty = detect_current_difficulty();
         }
     }
-    else {
-        Log.error(__FUNCTION__, "| Fail to detect current difficulty, reset current difficulty to 0");
-        m_current_difficulty = 0;
-    }
-    Log.info(__FUNCTION__, "| Current difficulty is", m_current_difficulty);
 
-    ProcessTask(*this, { m_config->get_theme() + "@Roguelike@ChooseDifficultyConfirm" }).run();
+    Log.info("Target difficulty:", difficulty);
+    Log.info("Current difficulty:", m_current_difficulty);
+
+    ProcessTask(*this, { theme + "@Roguelike@ChooseDifficultyConfirm" }).run();
 
     return true;
 }

@@ -1,6 +1,6 @@
 // <copyright file="ServerChanNotificationProvider.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -24,15 +24,9 @@ using Serilog;
 
 namespace MaaWpfGui.Services.Notification
 {
-    public class ServerChanNotificationProvider : IExternalNotificationProvider
+    public class ServerChanNotificationProvider(IHttpService httpService) : IExternalNotificationProvider
     {
-        private readonly IHttpService _httpService;
         private readonly ILogger _logger = Log.ForContext<ServerChanNotificationProvider>();
-
-        public ServerChanNotificationProvider(IHttpService httpService)
-        {
-            _httpService = httpService;
-        }
 
         public async Task<bool> SendAsync(string title, string content)
         {
@@ -52,13 +46,7 @@ namespace MaaWpfGui.Services.Notification
                 var url = ConstructUrl(sendKey);
                 var postData = $"text={Uri.EscapeDataString(title)}&desp={Uri.EscapeDataString(content)}";
 
-                using var httpClient = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded"),
-                };
-
-                var response = await httpClient.SendAsync(request);
+                var response = await httpService.PostAsync(new(url), new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded"));
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 var responseRoot = JsonDocument.Parse(responseContent).RootElement;
@@ -69,11 +57,11 @@ namespace MaaWpfGui.Services.Notification
                         return true;
                     }
 
-                    _logger.Warning($"Failed to send ServerChan notification, code: {code}");
+                    _logger.Warning("Failed to send ServerChan notification, code: {Value}", code);
                 }
                 else
                 {
-                    _logger.Warning($"Failed to send ServerChan notification, unknown response: {responseContent}");
+                    _logger.Warning("Failed to send ServerChan notification, unknown response: {ResponseContent}", responseContent);
                 }
             }
             catch (Exception ex)

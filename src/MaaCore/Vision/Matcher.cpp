@@ -4,6 +4,7 @@
 
 #include "Config/TaskData.h"
 #include "Config/TemplResource.h"
+#include "Utils/ImageIo.hpp"
 #include "Utils/Logger.hpp"
 #include "Utils/StringMisc.hpp"
 
@@ -21,16 +22,47 @@ Matcher::ResultOpt Matcher::analyze() const
 
         double min_val = 0.0, max_val = 0.0;
         cv::Point min_loc, max_loc;
-        cv::minMaxLoc(matched, &min_val, &max_val, &min_loc, &max_loc);
+        cv::Mat valid_mask;
+        cv::inRange(matched, 0.0f, 1.0f + 1e-5f, valid_mask);
+        cv::minMaxLoc(matched, &min_val, &max_val, &min_loc, &max_loc, valid_mask);
 
         Rect rect(max_loc.x + m_roi.x, max_loc.y + m_roi.y, templ.cols, templ.rows);
-        if (std::isnan(max_val) || std::isinf(max_val)) {
-            max_val = 0;
-        }
 
         double threshold = m_params.templ_thres[i];
         if (m_log_tracing && max_val > 0.5 && max_val > threshold - 0.2) { // 得分太低的肯定不对，没必要打印
             Log.trace("match_templ |", templ_name, "score:", max_val, "rect:", rect, "roi:", m_roi);
+#ifdef ASST_DEBUG
+            if (!m_params.methods.empty() && m_params.methods[0] == MatchMethod::HSVCount) {
+                const cv::Rect expanded_roi(
+                    std::max(rect.x - 200, 0),
+                    std::max(rect.y - 50, 0),
+                    std::min(rect.width + 400, m_image.cols - std::max(rect.x - 200, 0)),
+                    std::min(rect.height + 100, m_image.rows - std::max(rect.y - 50, 0)));
+                cv::Mat cropped = m_image(expanded_roi).clone();
+                const cv::Rect roi_in_cropped(
+                    rect.x - expanded_roi.x,
+                    rect.y - expanded_roi.y,
+                    rect.width,
+                    rect.height);
+                cv::rectangle(cropped, roi_in_cropped, cv::Scalar(0, 0, 255), 1);
+                const std::string name = std::filesystem::path(templ_name).stem().string();
+                const std::string text = name + " " + std::to_string(max_val);
+                const cv::Size text_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, nullptr);
+                const cv::Point text_pos(
+                    std::max(roi_in_cropped.x + roi_in_cropped.width / 2 - text_size.width / 2, 0),
+                    std::max(roi_in_cropped.y - 5, text_size.height));
+                cv::putText(cropped, text, text_pos, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1);
+
+                const static std::vector<int> jpeg_params = { cv::IMWRITE_JPEG_QUALITY,
+                                                              95,
+                                                              cv::IMWRITE_JPEG_OPTIMIZE,
+                                                              1 };
+                asst::imwrite(
+                    utils::path(std::format("debug/hsv/{}_{}.jpg", text, utils::format_now_for_filename())),
+                    cropped,
+                    jpeg_params);
+            }
+#endif
         }
         else {
             Log.debug("match_templ |", templ_name, "score:", max_val, "rect:", rect, "roi:", m_roi);

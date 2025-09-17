@@ -1,6 +1,6 @@
 // <copyright file="MallSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,11 +10,14 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using MaaWpfGui.Configuration.Factory;
+using MaaWpfGui.Configuration.Single.MaaTask;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Extensions;
 using MaaWpfGui.Helper;
@@ -23,6 +26,8 @@ using MaaWpfGui.Services;
 using MaaWpfGui.Utilities.ValueType;
 using MaaWpfGui.ViewModels.UI;
 using Newtonsoft.Json.Linq;
+using Serilog;
+using static MaaWpfGui.Main.AsstProxy;
 
 namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
 
@@ -111,13 +116,13 @@ public class MallSettingsUserControlModel : TaskViewModel
     /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global
     public List<GenericCombinedData<int>> FormationSelectList { get; } =
-        [
-            new() { Display = LocalizationHelper.GetString("Current"), Value = 0 },
-            new() { Display = "1", Value = 1 },
-            new() { Display = "2", Value = 2 },
-            new() { Display = "3", Value = 3 },
-            new() { Display = "4", Value = 4 },
-        ];
+    [
+        new() { Display = LocalizationHelper.GetString("Current"), Value = 0 },
+        new() { Display = "1", Value = 1 },
+        new() { Display = "2", Value = 2 },
+        new() { Display = "3", Value = 3 },
+        new() { Display = "4", Value = 4 },
+    ];
 
     private string _lastCreditVisitFriendsTime = ConfigurationHelper.GetValue(ConfigurationKeys.LastCreditVisitFriendsTime, DateTime.UtcNow.ToYjDate().AddDays(-1).ToFormattedString());
 
@@ -301,7 +306,7 @@ public class MallSettingsUserControlModel : TaskViewModel
 
     public override (AsstTaskType Type, JObject Params) Serialize()
     {
-        var fightEnable = Instances.TaskQueueViewModel.TaskItemViewModels.Where(x => x.OriginalName == "Combat").FirstOrDefault()?.IsCheckedWithNull is not false;
+        var fightEnable = Instances.TaskQueueViewModel.TaskItemViewModels.FirstOrDefault(x => x.OriginalName == "Combat")?.IsCheckedWithNull is not false;
         var task = new AsstMallTask()
         {
             CreditFight = fightEnable ? (!string.IsNullOrEmpty(FightSettingsUserControlModel.Instance.Stage) && CreditFightTaskEnabled) : CreditFightTaskEnabled,
@@ -315,5 +320,65 @@ public class MallSettingsUserControlModel : TaskViewModel
             ReserveMaxCredit = CreditReserveMaxCredit,
         };
         return task.Serialize();
+    }
+
+    public override bool? SerializeTask(BaseTask baseTask, int? taskId = null)
+    {
+        if (baseTask is not MallTask mall)
+        {
+            return null;
+        }
+
+        var fightStage = ConfigFactory.CurrentConfig.TaskQueue.FirstOrDefault(x => x is FightTask)?.IsEnable is not false
+                         && ConfigFactory.CurrentConfig.TaskQueue.Where(x => x is FightTask).Cast<FightTask>().FirstOrDefault()?.Stage1 == string.Empty;
+        if (fightStage)
+        {
+            Log.Warning("刷理智 当前/上次导致无法OF-1");
+            return false;
+        }
+
+        var creditFight = mall.CreditFight;
+        var visitFriends = mall.VisitFriends;
+
+        var lastCreditFightTaskTime = GetTaskConfig<MallTask>()?.CreditFightLastTime ?? string.Empty;
+        bool creditVisitOnceADay = GetTaskConfig<MallTask>()?.VisitFriendsOnceADay ?? default;
+        var lastCreditVisitFriendsTime = GetTaskConfig<MallTask>()?.VisitFriendsLastTime ?? string.Empty;
+        try
+        {
+            creditFight &= DateTime.UtcNow.ToYjDate() > DateTime.ParseExact(lastCreditFightTaskTime.Replace('-', '/'), "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            visitFriends &= !creditVisitOnceADay || DateTime.UtcNow.ToYjDate() > DateTime.ParseExact(lastCreditVisitFriendsTime.Replace('-', '/'), "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+        }
+
+        var task = new AsstMallTask()
+        {
+            CreditFight = creditFight && !fightStage,
+            SelectFormation = mall.CreditFightFormation,
+            VisitFriends = visitFriends,
+            WithShopping = mall.Shopping,
+            FirstList = [.. mall.FirstList.Split(';').Select(s => s.Trim())],
+            Blacklist = [.. mall.BlackList.Split(';').Select(s => s.Trim()).Union(_blackCharacterListMapping[SettingsViewModel.GameSettings.ClientType])],
+            ForceShoppingIfCreditFull = mall.ShoppingIgnoreBlackListWhenFull,
+            OnlyBuyDiscount = mall.OnlyBuyDiscount,
+            ReserveMaxCredit = mall.ReserveMaxCredit,
+        };
+
+        if (taskId is { } id)
+        {
+            return Instances.AsstProxy.AsstSetTaskParamsEncoded(id, task);
+        }
+        else
+        {
+            return Instances.AsstProxy.AsstAppendTaskWithEncoding(TaskType.Mall, task);
+        }
     }
 }

@@ -1,6 +1,6 @@
 // <copyright file="AutoScroll.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -15,6 +15,7 @@ using System;
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
+using JetBrains.Annotations;
 
 namespace MaaWpfGui.Styles.Properties
 {
@@ -30,7 +31,7 @@ namespace MaaWpfGui.Styles.Properties
         /// </summary>
         /// <param name="obj">The <see cref="DependencyObject"/> instance.</param>
         /// <returns>The property value.</returns>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static bool GetAutoScroll(DependencyObject obj)
         {
             return (bool)obj.GetValue(AutoScrollProperty);

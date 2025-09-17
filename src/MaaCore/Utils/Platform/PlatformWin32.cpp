@@ -164,9 +164,7 @@ std::string asst::platform::call_command(const std::string& cmdline, bool* exit_
     si.StartupInfo.wShowWindow = SW_HIDE;
     si.StartupInfo.hStdOutput = pipe_child_write;
     si.StartupInfo.hStdError = pipe_child_write;
-    ASST_AUTO_DEDUCED_ZERO_INIT_START
     PROCESS_INFORMATION process_info = { nullptr };
-    ASST_AUTO_DEDUCED_ZERO_INIT_END
 
     std::vector<uint8_t> attrs;
     size_t attrsize = 0;
@@ -378,7 +376,7 @@ bool asst::win32::SetDirectoryReparsePoint(const std::filesystem::path& link, co
     REPARSE_MOUNTPOINT_DATA_BUFFER& ReparseBuffer = (REPARSE_MOUNTPOINT_DATA_BUFFER&)buf;
 
     // Prepare reparse point data
-    memset(buf, 0, sizeof(buf));
+    SecureZeroMemory(buf, sizeof(buf));
     ReparseBuffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
     wcsncpy_s(ReparseBuffer.ReparseTarget, MAX_PATH + 1, nttarget.c_str(), MAX_PATH);
     ReparseBuffer.ReparseTargetMaximumLength = (WORD)((nttarget.size() + 1) * sizeof(WCHAR));

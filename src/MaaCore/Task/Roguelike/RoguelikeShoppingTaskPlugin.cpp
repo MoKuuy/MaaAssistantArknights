@@ -34,11 +34,16 @@ bool asst::RoguelikeShoppingTaskPlugin::_run()
     buy_once();
     const auto& theme = m_config->get_theme();
     if ((theme == RoguelikeTheme::Sami || theme == RoguelikeTheme::Sarkaz) &&
+        // 界园可能没有免费刷新，先不进这里
         m_config->get_mode() == RoguelikeMode::Exp) {
         // 点击刷新
-        ProcessTask(*this, { theme + "@Roguelike@StageTraderRefresh" }).run();
-        buy_once();
+        sleep(500);
+        if (ProcessTask(*this, { theme + "@Roguelike@StageTraderRefresh" }).run()) {
+            buy_once();
+        }
     }
+
+    sleep(1000);
 
     return true;
 }
@@ -128,7 +133,7 @@ bool asst::RoguelikeShoppingTaskPlugin::buy_once()
             continue;
         }
 
-        auto find_it = ranges::find_if(result, [&](const TextRect& tr) -> bool {
+        auto find_it = std::ranges::find_if(result, [&](const TextRect& tr) -> bool {
             return tr.text.find(goods.name) != std::string::npos || goods.name.find(tr.text) != std::string::npos;
         });
         if (find_it == result.cend()) {
@@ -170,7 +175,7 @@ bool asst::RoguelikeShoppingTaskPlugin::buy_once()
         }
 
         if (!goods.chars.empty()) {
-            if (ranges::find_first_of(chars_list, goods.chars) == chars_list.cend()) {
+            if (std::ranges::find_first_of(chars_list, goods.chars) == chars_list.cend()) {
                 Log.trace("Ready to buy", goods.name, ", but there is no such character, skip");
                 continue;
             }

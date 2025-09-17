@@ -9,7 +9,7 @@ dir:
 
 ::: center
 
-![MAA Logo](/images/maa-logo_512x512.png =256x256)
+![MAA Logo =256x256](/images/maa-logo_512x512.png)
 
 <!-- markdownlint-restore -->
 
@@ -93,18 +93,14 @@ MAA はコマンドラインインタフェース（CLI）操作をサポート�
 
 ### 多言語 (i18n)
 
-MAA は多言語をサポートし、Weblateを使用してローカライズ管理を行います。複数の言語に精通している場合は、[MAA Weblate](https://weblate.maa-org.net)で翻訳のお手伝いをしてください。
-
 MAA は中国語（簡体字）を第一言語とし、翻訳見出しはすべて中国語（簡体字）を基準としています。
-
-[![Weblate](https://weblate.maa-org.net/widget/maa/wpf-gui/multi-auto.svg)](https://weblate.maa-org.net/engage/maa/)
 
 ### Windows
 
 1. ビルド済みのサードパーティ ライブラリをダウンロードします。
 
       ```cmd
-      python maadeps-download.py
+      python tools/maadeps-download.py
       ```
 
 2. Visual Studio 2022 で `MAA.sln` を開き、`MaaWpfGui` を右クリックして、スタートアップ プロジェクトとして設定します。
@@ -183,7 +179,7 @@ MAAをより良くするために開発・テストに貢献してくれたす�
 
 ## 免責事項
 
-- 本ソフトウェアは [GNU Affero General Public License v3.0 only](https://spdx.org/licenses/AGPL-3.0-only.html) オープンソースライセンスを使用しています。
+- 本ソフトウェアは [GNU Affero General Public License v3.0 only](https://spdx.org/licenses/AGPL-3.0-only.html) オープンソースライセンスを使用しています、また追加の [ユーザー規約](https://github.com/MaaAssistantArknights/MaaAssistantArknights/blob/dev/terms-of-service.md) が付属しています。
 - 本ソフトウェアのロゴはAGPL 3.0ライセンスを使用しており、オープンソースではなく、[耗毛](https://weibo.com/u/3251357314)とVie、2人のアーティストと開発者がすべての権利を留保しています。「AGPL 3.0ライセンスに基づいて許可されている」という理由で、許可がない場合に本ソフトウェアのロゴを無断で使用することは禁止しております。また、許可なく商業目的で本ソフトウェアのロゴを無断で使用することも禁止しております。
 - 本ソフトウェアはオープンソースで無料であり、学習と研究のみの目的としています。販売者が本ソフトウェアの料金を請求する場合は、デバイスや時間の料金である可能性があります。発生した問題と結果は、本ソフトウェアとは一切関係ありません。
 
@@ -193,7 +189,7 @@ MAAをより良くするために開発・テストに貢献してくれたす�
 
 ## 広告
 
-ユーザー研究グループQQグループ：[QQグループ](https://ota.maa.plus/MaaAssistantArknights/api/qqgroup/index.html)  
+ユーザー研究グループQQグループ：[QQグループ](https://api.maa.plus/MaaAssistantArknights/api/qqgroup/index.html)  
 Discord サーバー: [Discord 招待リンク](https://discord.gg/23DfZ9uA4V)  
 ユーザー研究グループTGグループ：[Telegram](https://t.me/+Mgc2Zngr-hs3ZjU1)  
 自動作戦JSON作業シェア：[prts.plus](https://prts.plus)  

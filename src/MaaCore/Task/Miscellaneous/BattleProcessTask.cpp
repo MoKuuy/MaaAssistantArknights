@@ -1,8 +1,8 @@
 #include "BattleProcessTask.h"
 
-#include "Utils/Ranges.hpp"
 #include <chrono>
 #include <future>
+#include <ranges>
 #include <thread>
 
 #include "Utils/NoWarningCV.h"
@@ -40,7 +40,11 @@ bool asst::BattleProcessTask::_run()
         return false;
     }
 
-    update_deployment(true);
+    if (!update_deployment(true)) {
+        Log.error("update deployment failed");
+        return false;
+    }
+
     to_group();
 
     size_t action_size = get_combat_data().actions.size();
@@ -108,7 +112,9 @@ bool asst::BattleProcessTask::to_group()
             continue;
         }
         std::vector<std::string> oper_name_list;
-        ranges::transform(oper_list, std::back_inserter(oper_name_list), [](const auto& oper) { return oper.name; });
+        std::ranges::transform(oper_list, std::back_inserter(oper_name_list), [](const auto& oper) {
+            return oper.name;
+        });
         groups.emplace(group_name, std::move(oper_name_list));
     }
 
@@ -132,9 +138,9 @@ bool asst::BattleProcessTask::to_group()
     }
 
     std::unordered_map<std::string, std::string> ungrouped;
-    const auto& grouped_view = m_oper_in_group | views::values;
+    const auto& grouped_view = m_oper_in_group | std::views::values;
     for (const auto& name : char_set) {
-        if (ranges::find(grouped_view, name) != grouped_view.end()) {
+        if (std::ranges::find(grouped_view, name) != grouped_view.end()) {
             continue;
         }
         ungrouped.emplace(name, name);
@@ -150,11 +156,19 @@ bool asst::BattleProcessTask::to_group()
     }
 
     for (const auto& [group_name, oper_name] : m_oper_in_group) {
-        auto& this_group = get_combat_data().groups[group_name];
+        const auto& group_it = std::ranges::find_if(get_combat_data().groups, [&](const OperUsageGroup& pair) {
+            return pair.first == group_name;
+        });
+        if (group_it == get_combat_data().groups.end()) {
+            Log.warn(__FUNCTION__, "Group not found in combat data: ", group_name);
+            continue;
+        }
+        const auto& this_group = group_it->second;
         // there is a build error on macOS
         // https://github.com/MaaAssistantArknights/MaaAssistantArknights/actions/runs/3779762713/jobs/6425284487
         const std::string& oper_name_for_lambda = oper_name;
-        auto iter = ranges::find_if(this_group, [&](const auto& oper) { return oper.name == oper_name_for_lambda; });
+        auto iter =
+            std::ranges::find_if(this_group, [&](const auto& oper) { return oper.name == oper_name_for_lambda; });
         if (iter == this_group.end()) {
             continue;
         }
@@ -189,8 +203,9 @@ bool asst::BattleProcessTask::do_action(const battle::copilot::Action& action, s
 
     if (action.pre_delay > 0) {
         sleep_and_do_strategy(action.pre_delay);
-        // 等待之后画面可能会变化，更新下干员信息
-        update_deployment();
+        if (action.type == ActionType::Deploy) {
+            update_deployment(); // 等待之后画面可能会变化, 更新下干员信息, 但若为非部署动作, 则无需更新
+        }
     }
 
     bool ret = false;
@@ -298,15 +313,17 @@ void asst::BattleProcessTask::notify_action(const battle::copilot::Action& actio
 
 bool asst::BattleProcessTask::wait_condition(const Action& action)
 {
-    cv::Mat image;
+    cv::Mat image, image_prev;
     auto update_image_if_empty = [&]() {
         if (image.empty()) {
+            image_prev = cv::Mat();
             image = ctrler()->get_image();
             check_in_battle(image);
         }
     };
     auto do_strategy_and_update_image = [&]() {
         do_strategic_action(image);
+        image_prev = std::move(image);
         image = ctrler()->get_image();
     };
 
@@ -316,7 +333,7 @@ bool asst::BattleProcessTask::wait_condition(const Action& action)
         int pre_cost = m_cost;
 
         while (!need_exit()) {
-            update_cost(image);
+            update_cost(image, image_prev);
             if (action.cost_changes != 0) {
                 if ((pre_cost + action.cost_changes < 0) ? (m_cost <= pre_cost + action.cost_changes)
                                                          : (m_cost >= pre_cost + action.cost_changes)) {
@@ -333,7 +350,7 @@ bool asst::BattleProcessTask::wait_condition(const Action& action)
     if (m_kills < action.kills) {
         update_image_if_empty();
         while (!need_exit() && m_kills < action.kills) {
-            update_kills(image);
+            update_kills(image, image_prev);
             if (m_kills >= action.kills) {
                 break;
             }
@@ -346,8 +363,9 @@ bool asst::BattleProcessTask::wait_condition(const Action& action)
 
     if (action.costs) {
         update_image_if_empty();
+        update_cost(image); // 保证 m_cost 是最新的
         while (!need_exit()) {
-            update_cost(image);
+            update_cost(image, image_prev);
             if (m_cost >= action.costs) {
                 break;
             }
@@ -366,7 +384,7 @@ bool asst::BattleProcessTask::wait_condition(const Action& action)
                 return false;
             }
             size_t cooling_count =
-                ranges::count_if(m_cur_deployment_opers, [](const auto& oper) -> bool { return oper.cooling; });
+                std::ranges::count_if(m_cur_deployment_opers, [](const auto& oper) -> bool { return oper.cooling; });
             if (cooling_count == static_cast<size_t>(action.cooling)) {
                 break;
             }
@@ -383,7 +401,7 @@ bool asst::BattleProcessTask::wait_condition(const Action& action)
                 return false;
             }
             if (auto iter =
-                    ranges::find_if(m_cur_deployment_opers, [&](const auto& oper) { return oper.name == name; });
+                    std::ranges::find_if(m_cur_deployment_opers, [&](const auto& oper) { return oper.name == name; });
                 iter != m_cur_deployment_opers.end() && iter->available) {
                 break;
             }

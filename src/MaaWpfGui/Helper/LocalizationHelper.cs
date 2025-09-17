@@ -1,6 +1,6 @@
 // <copyright file="LocalizationHelper.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -97,7 +97,7 @@ namespace MaaWpfGui.Helper
             {
                 var dictionary = new ResourceDictionary
                 {
-                    Source = new Uri(@"Res\Localizations\zh-cn.xaml", UriKind.Relative),
+                    Source = new(@"Res\Localizations\zh-cn.xaml", UriKind.Relative),
                 };
                 foreach (var key in dictionary.Keys)
                 {
@@ -120,10 +120,11 @@ namespace MaaWpfGui.Helper
             {
                 var dictionary = new ResourceDictionary
                 {
-                    Source = new Uri($@"Res\Localizations\{cur}.xaml", UriKind.Relative),
+                    Source = new($@"Res\Localizations\{cur}.xaml", UriKind.Relative),
                 };
+                _preprocessedCultures.Add(cur);
+                PreprocessDictionary(dictionary, cur);
                 Application.Current.Resources.MergedDictionaries.Add(dictionary);
-
                 if (cur == _culture)
                 {
                     break;
@@ -140,6 +141,26 @@ namespace MaaWpfGui.Helper
             catch
             {
                 /* ignore */
+            }
+        }
+
+        private static readonly HashSet<string> _preprocessedCultures = [];
+
+        private static void PreprocessDictionary(ResourceDictionary dictionary, string culture)
+        {
+            foreach (var keyObj in dictionary.Keys)
+            {
+                if (keyObj is not string key)
+                {
+                    continue;
+                }
+
+                if (dictionary[key] is not string raw || !raw.Contains("{key="))
+                {
+                    continue;
+                }
+
+                dictionary[key] = GetFormattedString(key, culture);
             }
         }
 
@@ -160,8 +181,14 @@ namespace MaaWpfGui.Helper
             {
                 var dictionary = new ResourceDictionary
                 {
-                    Source = new Uri($@"Res\Localizations\{culture}.xaml", UriKind.Relative),
+                    Source = new($@"Res\Localizations\{culture}.xaml", UriKind.Relative),
                 };
+
+                if (_preprocessedCultures.Add(culture))
+                {
+                    PreprocessDictionary(dictionary, culture);
+                }
+
                 if (dictionary.Contains(key))
                 {
                     return Regex.Unescape(dictionary[key]?.ToString() ?? $"{{{{ {key} }}}}");
@@ -181,12 +208,43 @@ namespace MaaWpfGui.Helper
             return $"{{{{ {key} }}}}";
         }
 
+        /// <summary>
+        /// Gets a formatted localized string.
+        /// </summary>
+        /// <param name="key">The key of the string.</param>
+        /// <param name="culture">The language of the string</param>
+        /// <returns>The formatted string.</returns>
+        private static string GetFormattedString(string key, string? culture = null)
+        {
+            return ResolveNestedKeys(key, GetString(key, culture), culture, new());
+        }
+
+        private static string ResolveNestedKeys(string currentKey, string input, string? culture, Stack<string> visited)
+        {
+            if (visited.Contains(currentKey))
+            {
+                throw new InvalidOperationException($"Circular reference: {string.Join(" -> ", visited.Reverse())} -> {currentKey}");
+            }
+
+            visited.Push(currentKey);
+
+            var result = Regex.Replace(input, @"\{key=(\w+)\}", match =>
+            {
+                var innerKey = match.Groups[1].Value;
+                var innerValue = GetString(innerKey, culture);
+                return ResolveNestedKeys(innerKey, innerValue, culture, visited);
+            });
+
+            visited.Pop();
+            return result;
+        }
+
         private static readonly string[] _pallasChars = ["💃", "🕺", "🍷", "🍸", "🍺", "🍻", "🍷", "🍸", "🍺", "🍻"];
         private static readonly Random _pallasRand = new();
 
-        private static string GetPallasString()
+        public static string GetPallasString(int low = 3, int high = 6)
         {
-            int len = _pallasRand.Next(3, 6);
+            int len = _pallasRand.Next(low, high);
             StringBuilder cheersBuilder = new StringBuilder(len);
             for (int i = 0; i < len; i++)
             {
@@ -196,14 +254,15 @@ namespace MaaWpfGui.Helper
             return cheersBuilder.ToString();
         }
 
-        public static string FormatResourceVersion(string? resourceVersion, DateTime resourceDateTime)
+        public static string FormatVersion(string? version, DateTime dateTime)
         {
+            dateTime = dateTime.ToLocalTime();
             return CustomCultureInfo.Name.ToLowerInvariant() switch
             {
-                "zh-cn" => $"{resourceVersion}{resourceDateTime:#MMdd}",
-                "zh-tw" => $"{resourceVersion}{resourceDateTime:#MMdd}",
-                "en-us" => $"{resourceDateTime:dd/MM} {resourceVersion}",
-                _ => $"{resourceDateTime.ToString(CustomCultureInfo.DateTimeFormat.ShortDatePattern.Replace("yyyy", string.Empty).Trim('/', '.'))} {resourceVersion}",
+                "zh-cn" => $"{version}{dateTime:#MMdd}",
+                "zh-tw" => $"{version}{dateTime:#MMdd}",
+                "en-us" => $"{dateTime:dd/MM} {version}",
+                _ => $"{dateTime.ToString(CustomCultureInfo.DateTimeFormat.ShortDatePattern.Replace("yyyy", string.Empty).Trim('/', '.'))} {version}",
             };
         }
 

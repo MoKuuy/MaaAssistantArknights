@@ -346,8 +346,8 @@
         "next": ["ClickStageName", "FullStageNavigation"]
     },
     "FullStageNavigation": {
-        "Doc": "右滑五次，然后检测关卡并左滑",
-        "Doc2": "在一次关卡导航中，仅swipe五次，其余情况进exceededNext",
+        "Doc": "右滑 10 次，然后检测关卡并左滑",
+        "Doc2": "在一次关卡导航中，仅swipe 10次，其余情况进exceededNext",
         "baseTask": "ChapterSwipeToTheRight",
         "specificRect_Doc": "防止在关卡名展开的情况下无法滑动，调整滑动区域",
         "specificRect": [600, 100, 20, 20],
@@ -504,24 +504,26 @@
         "Doc": "在上面一点滑避免点到关卡划不动",
         "baseTask": "SlowlySwipeToTheLeft",
         "specificRect": [300, 100, 20, 20],
-        "rectMove": [900, 100, 20, 20]
+        "rectMove": [900, 100, 20, 20],
+        "highResolutionSwipeFix": true
     },
     "ChapterSlowlySwipeToTheRight": {
         "baseTask": "SlowlySwipeToTheRight",
         "specificRect": [900, 100, 20, 20],
-        "rectMove": [300, 100, 20, 20]
+        "rectMove": [300, 100, 20, 20],
+        "highResolutionSwipeFix": true
     },
     "ChapterSwipeToTheLeft": {
         "Doc": "滑动到最左",
         "baseTask": "ChapterSlowlySwipeToTheLeft",
-        "specialParams": [150, 0, 0.5],
+        "specialParams": [150, 0, 0],
         "next": ["#self"],
         "maxTimes": 5
     },
     "ChapterSwipeToTheRight": {
         "Doc": "滑动到最右",
         "baseTask": "ChapterSlowlySwipeToTheRight",
-        "specialParams": [150, 0, 0.5],
+        "specialParams": [150, 0, 0],
         "next": ["#self"],
         "maxTimes": 10
     },
@@ -559,13 +561,6 @@
         "action": "ClickSelf",
         "roi": [487, 600, 143, 120]
     },
-    "SideStoryReopen": {
-        "action": "ClickSelf",
-        "algorithm": "OcrDetect",
-        "text": ["复刻"],
-        "roi": [0, 500, 500, 150],
-        "postDelay": 3000
-    },
     "StageQueue@CheckPrts": {
         "algorithm": "JustReturn",
         "maxTimes": 3,
@@ -584,15 +579,19 @@
     "StageQueue": {
         "baseTask": "Fight",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "maxTimes": 3,
         "exceededNext": ["Stop"],
@@ -602,7 +601,10 @@
         "next": ["StageQueue@StartButton1"]
     },
     "StageQueue@CloseStonePage": {
-        "next": []
+        "maxTimes": 2147483647,
+        "exceededNext": [],
+        "next": [],
+        "postDelay": 500
     },
     "StageQueue@StartButton1": {
         "Doc": "开始战斗1",
@@ -705,7 +707,7 @@
             ["^c(?!ast)", ""],
             ["^\\^一", ""],
             ["^_(?=.)", ""],
-            ["^令.+", "令"],
+            ["^_$", ""],
             [".*弦惊.*", "“弦惊”"],
             [".*亚梅塔", "菲亚梅塔"],
             [".*逍遥.*", "“逍遥”"],
@@ -717,20 +719,23 @@
             ["^重岳.+", "重岳"],
             ["(麒.+夜刀|.*麟.*夜刀)$", "麒麟R夜刀"],
             [".*龙.*黑角$", "火龙S黑角"],
-            [".*大陆调查团$", "泰拉大陆调查团"],
             ["[Uu]-[O0o]f{1,2}icial", "U-Official"],
             [".*威龙陈", "假日威龙陈"],
-            ["^(夕.*|H$)", "夕"],
             ["青积", "青枳"],
             [".*烬艾雅法.*", "纯烬艾雅法拉"],
             ["^(山.+|一山$)", "山"],
+            ["^一余$", "余"],
+            ["^一锏$", "锏"],
+            ["^(煌.*|一煌$)", "煌"],
+            ["^(年.?|一年)$", "年"],
+            ["^(委|泰|一黍)$", "黍"],
+            ["^(令.+|一令$)", "令"],
+            ["^(夕.*|H$|一夕$)", "夕"],
             ["12E", "12F"],
             ["归.*幽灵鲨", "归溟幽灵鲨"],
             ["(临六$|^临光.*)", "临光"],
-            ["^(煌.*|一煌$)", "煌"],
             [".*甜蜜狂搅.*", "“甜蜜狂搅”"],
             ["^尖端研究成果共享.*", "尖端研究成果共享终端"],
-            ["^年.?$", "年"],
             ["^w$", "W"],
             ["维获", "维荻"],
             [".*ancet-2", "Lancet-2"],
@@ -744,7 +749,6 @@
             ["^预备干员-狙.*", "预备干员-狙击"],
             ["^预备干员-重.*", "预备干员-重装"],
             ["^折光.*", "折光"],
-            ["^(委|泰)$", "黍"],
             ["^红集$", "红隼"],
             ["小.?满", "小满"],
             [".*夹子.*", "“夹子”"],
@@ -756,9 +760,14 @@
             ["^华琳$", "华法琳"],
             ["^宝箱的肉.*", "宝箱的肉？"],
             [".*维多利亚$", "维娜·维多利亚"],
-            [".*芜拉普兰德$", "荒芜拉普兰德"],
             ["^盥心$", "塑心"],
-            ["^钳铅$", "钼铅"]
+            ["^钳铅$", "钼铅"],
+            [".*NFESS-47$", "CONFESS-47"],
+            ["^焰影苇.*", "焰影苇草"],
+            ["Miss\\.[Cc]hristine", "Miss.Christine"],
+            ["^野.{0,2}$", "野鬃"],
+            ["^(“|”|\\\\|\")?斩(“|”|\\\\|\")?$", "“斩”"],
+            ["八.*海铃", "八幡海铃"]
         ]
     },
     "SwitchAccount@StartUpBegin": {
@@ -772,15 +781,19 @@
     },
     "SwitchAccount": {
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "baseTask": "StartUp",
         "next": ["Settings"]
@@ -810,7 +823,7 @@
     "LogoutConfirm": {
         "action": "ClickSelf",
         "roi": [650, 450, 280, 60],
-        "next": ["AccountManager", "AccountManager@LoadingText"],
+        "next": ["AccountManager", "LogoutConfirm@LoadingText"],
         "postDelay": 3000
     },
     "LogoutConfirmOCR": {
@@ -818,7 +831,7 @@
         "action": "ClickSelf",
         "text": ["是"],
         "roi": [650, 450, 280, 60],
-        "next": ["AccountManager", "AccountManager@LoadingText"],
+        "next": ["AccountManager", "LogoutConfirmOCR@LoadingText"],
         "postDelay": 3000
     },
     "ExitOld": {
@@ -920,6 +933,7 @@
             "MainThemes#next",
             "CloseAnnos#next",
             "OfflineConfirm",
+            "GameStartCheckResourceOCR",
             "GameStartUpdateOCR"
         ]
     },
@@ -947,6 +961,14 @@
         "maskRange": [1, 255],
         "reduceOtherTimes": ["StartButton1", "StartButton2"],
         "next": ["StartUpThemes#next", "GameStart@LoadingIcon"]
+    },
+    "GameStartCheckResourceOCR": {
+        "doc": "开始唤醒时最开始的完整性检测",
+        "algorithm": "OcrDetect",
+        "text": ["资源完整性", "不消耗流量"],
+        "roi": [340, 620, 600, 80],
+        "postDelay": 5000,
+        "next": ["#self", "StartUpThemes#next"]
     },
     "GameStartUpdateOCR": {
         "doc": "开始唤醒时遇到更新下载",
@@ -982,15 +1004,19 @@
         "baseTask": "Home",
         "action": "DoNothing",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "next": ["Home", "StartUpBegin"],
         "postDelay_Doc": "等待以防万一（StartUp还有双倍的任务延迟等待，默认0.5s x2",
@@ -1008,16 +1034,21 @@
     },
     "StartUp": {
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
+        "maskRange": [1, 255],
         "roi": [844, 58, 268, 272],
         "Doc": "有时候明明已经在主界面了，停了一小会又弹个窗。多检测几次，一直在主界面才算完成",
         "postDelay": 1000,
@@ -1148,6 +1179,56 @@
     "StartUp@ClickCorner": {
         "next": ["StartUp@ReturnButtons#next", "StartUp", "StartUp@CloseAnnos#next", "StartUp@OfflineConfirm"]
     },
+    "Chernobog@Annihilation": {
+        "template": "StageAnnihilation.png",
+        "next": ["Chernobog@AnnihilationReturn"]
+    },
+    "LungmenOutskirts@Annihilation": {
+        "template": "StageAnnihilation.png",
+        "next": ["LungmenOutskirts@AnnihilationReturn"]
+    },
+    "LungmenDowntown@Annihilation": {
+        "template": "StageAnnihilation.png",
+        "next": ["LungmenDowntown@AnnihilationReturn"]
+    },
+    "AnnihilationStage": {
+        "algorithm": "OcrDetect",
+        "text": [],
+        "action": "ClickSelf"
+    },
+    "Chernobog@AnnihilationStage": {
+        "Doc": "切换剿灭关卡-切尔诺伯格",
+        "text": ["切尔诺伯格"],
+        "roi": [721, 22, 529, 693]
+    },
+    "LungmenOutskirts@AnnihilationStage": {
+        "Doc": "切换剿灭关卡-龙门外环",
+        "text": ["龙门外环"],
+        "roi": [721, 22, 529, 693]
+    },
+    "LungmenDowntown@AnnihilationStage": {
+        "Doc": "切换剿灭关卡-龙门市区",
+        "text": ["龙门市区"],
+        "roi": [721, 22, 529, 693]
+    },
+    "AnnihilationSwitchButton": {
+        "Doc": "切换剿灭关卡（菜单按钮）",
+        "algorithm": "OcrDetect",
+        "text": ["切换"],
+        "action": "ClickSelf",
+        "roi": [966, 577, 315, 142],
+        "next": ["AnnihilationStage"]
+    },
+    "AnnihilationReturn": {
+        "Doc": "从剿灭关卡界面退回到含有切换按钮的界面",
+        "template": "Return.png",
+        "templThreshold": 0.7,
+        "action": "ClickSelf",
+        "preDelay": 1000,
+        "postDelay": 500,
+        "roi": [0, 0, 180, 80],
+        "next": ["AnnihilationSwitchButton"]
+    },
     "Annihilation": {
         "Doc": "剿灭作战，一般本周的满了也不会有人再刷的，所以只识别右上角ToDoList里的剿灭就可以了",
         "template": "StageAnnihilation.png",
@@ -1206,9 +1287,14 @@
         "next": ["StartButton1"]
     },
     "FightSeries-Icon": {
-        "roi": [927, 567, 122, 66]
+        "doc": "代理指挥左侧的连战乘号, rectMove为乘号到次数偏移",
+        "method": "RGBCount",
+        "colorScales": [[30, 70]],
+        "roi": [927, 567, 122, 66],
+        "rectMove": [27, -10, 25, 32]
     },
-    "FightSeries-Indicator": {
+    "FightSeries-Opened": {
+        "template": "FightSeries-Indicator.png",
         "roi": [940, 190, 80, 380],
         "templThreshold": 0.9,
         "maskRange": [1, 255]
@@ -1217,38 +1303,40 @@
         "baseTask": "FightSeries-Icon",
         "template": "FightSeries-Icon.png",
         "action": "ClickSelf",
-        "sub": ["FightSeries-Indicator"],
-        "postDelay": 500
+        "sub": ["FightSeries-Opened"],
+        "next": ["Stop"]
     },
-    "FightSeries-List-1": {
-        "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [965, 505, 70, 55]
+    "FightSeries-NotClosed": {
+        "baseTask": "FightSeries-Opened",
+        "template": "FightSeries-Indicator.png",
+        "next": ["FightSeries-Close"]
     },
-    "FightSeries-List-2": {
-        "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [965, 445, 70, 55]
+    "FightSeries-Close": {
+        "baseTask": "FightSeries-Icon",
+        "template": "FightSeries-Icon.png",
+        "action": "ClickSelf",
+        "next": ["FightSeries-CloseList"]
     },
-    "FightSeries-List-3": {
-        "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [965, 383, 70, 55]
+    "FightSeries-Closed": {
+        "baseTask": "FightSeries-Icon",
+        "template": "FightSeries-Icon.png",
+        "next": ["Stop"]
     },
-    "FightSeries-List-4": {
+    "FightSeries-CloseList": {
         "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [965, 320, 70, 55]
+        "next": ["FightSeries-NotClosed", "FightSeries-Closed"]
     },
-    "FightSeries-List-5": {
-        "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [965, 260, 70, 55]
+    "FightSeries-List-Exceeded": {
+        "doc": "连战列表中需要使用理智药才能打的次数会带+号标记",
+        "roi": [965, 200, 70, 325]
     },
-    "FightSeries-List-6": {
-        "algorithm": "JustReturn",
+    "FightSeries-List-Multiply": {
+        "Doc": "连战次数列表每个选项的乘号, rectMove到次数, 灰度低于150为碎石才能打",
         "action": "ClickRect",
-        "specificRect": [965, 200, 70, 50]
+        "roi": [970, 200, 40, 360],
+        "rectMove": [25, 10, 20, 25],
+        "specificRect": [0, 0, 55, 40],
+        "specialParams": [150]
     },
     "StartButton1": {
         "doc": "绑定插件调整连战次数",
@@ -1257,7 +1345,7 @@
         "text": ["开始行动", "开始作战", "开始推演"],
         "preDelay": 500,
         "postDelay": 1000,
-        "roi": [1038, 625, 206, 61],
+        "roi": [1010, 625, 260, 61],
         "exceededNext": ["StageSNReturnFlag", "Stop"],
         "reduceOtherTimes": ["(ClickCornerAfterPRTS+ClickCorner)*5"],
         "next": [
@@ -1302,7 +1390,8 @@
         "action": "ClickSelf",
         "preDelay": 1000,
         "roi": [1000, 350, 220, 340],
-        "next": ["StartButton2TryAgain", "StartButton2WaitTime"]
+        "next": ["StartButton2TryAgain", "StartButton2WaitTime"],
+        "reduceOtherTimes": ["CloseStonePage"]
     },
     "StartButton2TryAgain": {
         "baseTask": "StartButton2",
@@ -1405,7 +1494,18 @@
     },
     "SanityMatch": {
         "baseTask": "NumberOcrReplace",
-        "roi": [1120, 20, 160, 40]
+        "roi": [1120, 20, 160, 40],
+        "binThreshold": [0, 255]
+    },
+    "StageSanityCost": {
+        "roi": [1100, 660, 180, 60]
+    },
+    "StageSanityCostOcr": {
+        "Doc": "先拿理智标记匹配完, 偏移roi再ocr",
+        "baseTask": "NumberOcrReplace",
+        "roi": [40, 0, 49, 24],
+        "binThreshold": [0, 255],
+        "ocrReplace": [["-", ""]]
     },
     "UseMedicine": {
         "doc": "绑定MedicineCounter来使用理智药",
@@ -1450,12 +1550,13 @@
     "UsingMedicineCount": {
         "baseTask": "NumberOcrReplace",
         "rectMove": [-95, 28, 105, 60],
-        "specialParams": [150, 255]
+        "binThreshold": [220, 255],
+        "useRaw": false
     },
     "MedicineInventory": {
         "baseTask": "NumberOcrReplace",
         "rectMove": [-29, 87, 40, 33],
-        "specialParams": [150, 255]
+        "binThreshold": [220, 255]
     },
     "MedicineExpiringTime": {
         "algorithm": "OcrDetect",
@@ -1471,11 +1572,16 @@
     },
     "UsingMedicine-Target": {
         "baseTask": "NumberOcrReplace",
-        "roi": [255, 390, 315, 140]
+        "roi": [255, 390, 315, 140],
+        "binThreshold": [100, 255],
+        "ocrReplaceDoc": "有时候会识别出小数点等其他东西，需要附加到 NumberOcrReplace 的后面，cpp 中处理",
+        "ocrReplace": [["[^\\d]", ""]]
     },
     "UsingMedicine-SanityMax": {
         "baseTask": "NumberOcrReplace",
-        "roi": [440, 330, 150, 55]
+        "roi": [440, 330, 150, 55],
+        "binThreshold": [100, 255],
+        "ocrReplace": [["[^\\d]", ""]]
     },
     "DrGrandetUseOriginiums": {
         "algorithm": "OcrDetect",
@@ -1520,6 +1626,13 @@
         "algorithm": "JustReturn",
         "action": "ClickRect",
         "specificRect": [0, 200, 300, 400],
+        "exceededNext": ["CloseStonePageExceeded"],
+        "maxTimes": 2,
+        "next": ["StartButton1"]
+    },
+    "CloseStonePageExceeded": {
+        "baseTask": "CloseStonePage",
+        "exceededNext": [],
         "next": ["StageSNReturnFlag", "Stop"]
     },
     "PrtsErrorConfirm": {
@@ -1563,16 +1676,21 @@
     },
     "Fight": {
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
+        "maskRange": [1, 255],
         "action": "ClickSelf",
         "roi": [844, 58, 268, 272],
         "exceededNext": ["Fight@TodaysSupplies", "Fight@CloseAnnos#next", "Stop"],
@@ -1598,15 +1716,19 @@
     },
     "Recruit": {
         "template": [
-            "Recruit.png",
-            "RecruitDark.png",
-            "RecruitSami.png",
-            "RecruitMistCity.png",
-            "RecruitSiege.png",
-            "RecruitSarkaz.png",
-            "RecruitDelicious.png",
-            "RecruitGaming.png",
-            "RecruitDahuangCity.png"
+            "Default/Recruit.png",
+            "Dark/Recruit.png",
+            "Sami/Recruit.png",
+            "MistCity/Recruit.png",
+            "Siege/Recruit.png",
+            "Sarkaz/Recruit.png",
+            "Delicious/Recruit.png",
+            "Gaming/Recruit.png",
+            "DahuangCity/Recruit.png",
+            "Dreamland/DreamlandDefault/Recruit.png",
+            "Dreamland/DreamlandDark/Recruit.png",
+            "JieGarden/Recruit.png",
+            "AveMujica/Recruit.png"
         ],
         "action": "ClickSelf",
         "roi": [900, 450, 200, 150],
@@ -1621,17 +1743,20 @@
         "action": "ClickSelf",
         "templThreshold": 0.7,
         "roi": [0, 300, 1280, 420],
+        "reduceOtherTimes": ["RecruitSkipWithoutButton*10"],
         "next": ["RecruitFinish@LoadingText", "RecruitFinish", "Recruit", "RecruitSkip", "RecruitSkipWithoutButton"]
     },
     "RecruitSkip": {
         "action": "ClickSelf",
         "roi": [1100, 0, 180, 150],
+        "reduceOtherTimes": ["RecruitSkipWithoutButton*10"],
         "next": ["RecruitSkip", "RecruitSkipWithoutButton"]
     },
     "RecruitSkipWithoutButton": {
         "algorithm": "JustReturn",
         "action": "ClickRect",
         "specificRect": [1180, 15, 85, 60],
+        "maxTimes": 10,
         "next": ["RecruitFinish", "RecruitFlag", "RecruitSkip", "Recruit", "RecruitSkipWithoutButton"]
     },
     "StartRecruit": {
@@ -1676,15 +1801,19 @@
         "baseTask": "Home",
         "action": "DoNothing",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "next": ["MiningActivities", "Stop"]
     },
@@ -1720,22 +1849,26 @@
         "baseTask": "Home",
         "action": "DoNothing",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "next": ["OrundumActivities", "Stop"]
     },
     "OrundumActivities": {
         "doc": "幸运墙领合成玉",
         "algorithm": "OcrDetect",
-        "text": ["幸运墙", "幸运", "好运墙", "好运", "游乐"],
+        "text": ["幸运墙", "幸运", "好运墙", "好运", "游乐", "育婴圣堂", "许愿墙"],
         "action": "ClickSelf",
         "roi": [64, 72, 97, 156],
         "next": ["OrundumActivitiesChoose", "OrundumActivitiesReturn"],
@@ -1802,15 +1935,19 @@
         "baseTask": "Home",
         "action": "DoNothing",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "next": ["RecruitingActivities", "Stop"]
     },
@@ -1824,21 +1961,23 @@
     },
     "RecruitingActivitiesConfirm": {
         "algorithm": "OcrDetect",
-        "text": ["赠送", "次", "小时"],
+        "text": ["赠送", "次", "小时", "分钟"],
         "roi": [729, 515, 303, 135],
-        "next": ["RecruitingActivitiesRecruit", "RecruitingActivitiesConfirm"]
+        "next": ["RecruitingActivitiesRecruit", "RecruitingActivitiesConfirm"],
+        "maxTimes": 3
     },
     "RecruitingActivitiesRecruit": {
         "algorithm": "OcrDetect",
         "action": "ClickSelf",
-        "text": ["寻访一次", "寻访"],
-        "roi": [770, 577, 267, 143],
+        "text": ["赠送一次", "赠送"],
+        "roi": [802, 619, 198, 61],
         "next": ["RecruitingActivitiesRecruitNowConfirm"]
     },
     "RecruitingActivitiesRecruitNowConfirm": {
         "action": "ClickSelf",
         "template": "RecruitNowConfirm.png",
         "roi": [586, 399, 694, 192],
+        "reduceOtherTimes": ["RecruitingActivitiesRecruitSkipWithoutButton*10"],
         "next": [
             "RecruitingActivitiesRecruitSkip",
             "RecruitingActivitiesRecruitNowConfirm",
@@ -1849,12 +1988,14 @@
         "action": "ClickSelf",
         "template": "RecruitSkip.png",
         "roi": [1100, 0, 180, 150],
+        "reduceOtherTimes": ["RecruitingActivitiesRecruitSkipWithoutButton*10"],
         "next": ["RecruitingActivitiesRecruitSkip", "RecruitingActivitiesRecruitSkipWithoutButton"]
     },
     "RecruitingActivitiesRecruitSkipWithoutButton": {
         "action": "ClickRect",
         "algorithm": "JustReturn",
         "specificRect": [1180, 15, 85, 60],
+        "maxTimes": 10,
         "next": [
             "RecruitingActivitiesRecruitEnd",
             "RecruitingActivitiesRecruitSkip",
@@ -1879,15 +2020,19 @@
         "baseTask": "Home",
         "action": "DoNothing",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "next": ["SpecialAccessActivities", "Stop"]
     },
@@ -1896,7 +2041,7 @@
         "algorithm": "OcrDetect",
         "text": ["五周年", "专享", "专享活动", "活动推荐", "月卡"],
         "action": "ClickSelf",
-        "roi": [74, 79, 79, 41],
+        "roi": [5, 21, 203, 258],
         "next": ["SpecialAccessActivitiesConfirm", "SpecialAccessActivitiesReturn"],
         "onErrorNext": ["Stop"]
     },
@@ -1934,15 +2079,19 @@
     },
     "Award": {
         "template": [
-            "Task.png",
-            "TaskDark.png",
-            "TaskSami.png",
-            "TaskMistCity.png",
-            "TaskSiege.png",
-            "TaskSarkaz.png",
-            "TaskDelicious.png",
-            "TaskGaming.png",
-            "TaskDahuangCity.png"
+            "Default/Task.png",
+            "Dark/Task.png",
+            "Sami/Task.png",
+            "MistCity/Task.png",
+            "Siege/Task.png",
+            "Sarkaz/Task.png",
+            "Delicious/Task.png",
+            "Gaming/Task.png",
+            "DahuangCity/Task.png",
+            "Dreamland/DreamlandDefault/Task.png",
+            "Dreamland/DreamlandDark/Task.png",
+            "JieGarden/Task.png",
+            "AveMujica/Task.png"
         ],
         "maskRange": [1, 255],
         "action": "ClickSelf",
@@ -1981,7 +2130,7 @@
     },
     "DailyTask": {
         "baseTask": "WeeklyTask",
-        "template": "WeeklyTask",
+        "template": "WeeklyTask.png",
         "rectMove": [-150, 0, 100, 30],
         "next": ["ReceiveAward", "WeeklyTask"]
     },
@@ -1997,15 +2146,19 @@
     "MailReturnToHome": {
         "baseTask": "Home",
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
         "action": "DoNothing",
         "next": ["Mail", "MailWithoutAward"]
@@ -2054,15 +2207,19 @@
     },
     "Visit": {
         "template": [
-            "Friends.png",
-            "FriendsDark.png",
-            "FriendsSami.png",
-            "FriendsMistCity.png",
-            "FriendsSiege.png",
-            "FriendsSarkaz.png",
-            "FriendsDelicious.png",
-            "FriendsGaming.png",
-            "FriendsDahuangCity.png"
+            "Default/Friends.png",
+            "Dark/Friends.png",
+            "Sami/Friends.png",
+            "MistCity/Friends.png",
+            "Siege/Friends.png",
+            "Sarkaz/Friends.png",
+            "Delicious/Friends.png",
+            "Gaming/Friends.png",
+            "DahuangCity/Friends.png",
+            "Dreamland/DreamlandDefault/Friends.png",
+            "Dreamland/DreamlandDark/Friends.png",
+            "JieGarden/Friends.png",
+            "AveMujica/Friends.png"
         ],
         "templThreshold": 0.7,
         "maskRange": [1, 255],
@@ -2111,17 +2268,23 @@
         "next": ["Mall@ReturnButtons#next", "Mall", "Mall@CloseAnnos#next"]
     },
     "Mall": {
+        "doc": "请同步更新 Store@EnterStore 的 template",
         "template": [
-            "Mall.png",
-            "MallDark.png",
-            "MallSami.png",
-            "MallMistCity.png",
-            "MallSiege.png",
-            "MallSarkaz.png",
-            "MallDelicious.png",
-            "MallGaming.png",
-            "MallDahuangCity.png"
+            "Default/Mall.png",
+            "Dark/Mall.png",
+            "Sami/Mall.png",
+            "MistCity/Mall.png",
+            "Siege/Mall.png",
+            "Sarkaz/Mall.png",
+            "Delicious/Mall.png",
+            "Gaming/Mall.png",
+            "DahuangCity/Mall.png",
+            "Dreamland/DreamlandDefault/Mall.png",
+            "Dreamland/DreamlandDark/Mall.png",
+            "JieGarden/Mall.png",
+            "AveMujica/Mall.png"
         ],
+        "maskRange": [1, 255],
         "action": "ClickSelf",
         "roi": [772, 407, 186, 171],
         "next": ["CreditStoreOcr", "Mall", "Mall@CloseAnnos#next"],
@@ -2157,7 +2320,8 @@
     "CrisisPopup": {
         "action": "ClickRect",
         "roi": [450, 130, 400, 100],
-        "specificRect": [20, 20, 135, 35]
+        "specificRect": [20, 20, 135, 35],
+        "next": ["#self", "Stop"]
     },
     "VisitLimited": {
         "algorithm": "OcrDetect",
@@ -2171,16 +2335,21 @@
     },
     "Home": {
         "template": [
-            "Terminal.png",
-            "TerminalDark.png",
-            "TerminalSami.png",
-            "TerminalMistCity.png",
-            "TerminalSiege.png",
-            "TerminalSarkaz.png",
-            "TerminalDelicious.png",
-            "TerminalGaming.png",
-            "TerminalDahuangCity.png"
+            "Default/Terminal.png",
+            "Dark/Terminal.png",
+            "Sami/Terminal.png",
+            "MistCity/Terminal.png",
+            "Siege/Terminal.png",
+            "Sarkaz/Terminal.png",
+            "Delicious/Terminal.png",
+            "Gaming/Terminal.png",
+            "DahuangCity/Terminal.png",
+            "Dreamland/DreamlandDefault/Terminal.png",
+            "Dreamland/DreamlandDark/Terminal.png",
+            "JieGarden/Terminal.png",
+            "AveMujica/Terminal.png"
         ],
+        "maskRange": [1, 255],
         "action": "Stop",
         "roi": [844, 58, 268, 272],
         "crop_doc": {
@@ -2212,7 +2381,7 @@
         "roi": [544, 0, 210, 201],
         "maskRange": [1, 255],
         "action": "ClickRect",
-        "specificRect": [645, 665, 0, 0],
+        "specificRect": [645, 665, 1, 1],
         "postDelay": 1500,
         "next": ["CreditShop-Bought", "Stop"]
     },
@@ -2283,7 +2452,7 @@
     },
     "SupportListAnalyzer-Elite": {
         "doc": "若助战干员栏位底部 Icon 的 Rect 为 r, 则干员精英化等级识别用 roi 为 [r.x + roi.x, r.y - roi,y, roi.w, roi.h]",
-        "template": ["SupportListAnalyzer-Elite-2", "SupportListAnalyzer-Elite-1"],
+        "template": ["SupportListAnalyzer-Elite-2.png", "SupportListAnalyzer-Elite-1.png"],
         "roi": [35, -187, 60, 50],
         "templThreshold": 0.7,
         "method": ["RGBCount", "RGBCount"],
@@ -2380,15 +2549,19 @@
     },
     "Infrast": {
         "template": [
-            "EnterInfrast.png",
-            "EnterInfrastDark.png",
-            "EnterInfrastSami.png",
-            "EnterInfrastMistCity.png",
-            "EnterInfrastSiege.png",
-            "EnterInfrastSarkaz.png",
-            "EnterInfrastDelicious.png",
-            "EnterInfrastGaming.png",
-            "EnterInfrastDahuangCity.png"
+            "Default/EnterInfrast.png",
+            "Dark/EnterInfrast.png",
+            "Sami/EnterInfrast.png",
+            "MistCity/EnterInfrast.png",
+            "Siege/EnterInfrast.png",
+            "Sarkaz/EnterInfrast.png",
+            "Delicious/EnterInfrast.png",
+            "Gaming/EnterInfrast.png",
+            "DahuangCity/EnterInfrast.png",
+            "Dreamland/DreamlandDefault/EnterInfrast.png",
+            "Dreamland/DreamlandDark/EnterInfrast.png",
+            "JieGarden/EnterInfrast.png",
+            "AveMujica/EnterInfrast.png"
         ],
         "maskRange": [1, 255],
         "roi": [930, 540, 230, 180],
@@ -2402,6 +2575,7 @@
     },
     "InfrastEnteredFlag": {
         "template": "InfrastOverview.png",
+        "templThreshold": 0.95,
         "roi": [0, 100, 300, 150],
         "next": ["InfrastNotification", "Stop"],
         "postDelay": 5000
@@ -2429,6 +2603,8 @@
     },
     "InfrastEnterRotation": {
         "template": "InfrastOverviewEnter.png",
+        "method": "RGBCount",
+        "colorScales": [[250, 255]],
         "roi": [120, 50, 160, 160],
         "postDelay": 1000,
         "action": "ClickSelf",
@@ -2436,7 +2612,7 @@
     },
     "InfrastRotationClick": {
         "template": "InfrastQueueRotation.png",
-        "roi": [1020, 600, 150, 130],
+        "roi": [1020, 600, 150, 120],
         "action": "ClickSelf",
         "next": ["InfrastEnterTrim"]
     },
@@ -2448,7 +2624,7 @@
     },
     "InfrastTrimClick": {
         "template": "InfrastOperatorTrim.png",
-        "roi": [1020, 600, 150, 130],
+        "roi": [1020, 600, 150, 120],
         "postDelay": 1000,
         "action": "ClickSelf",
         "next": ["InfrastRotationReturn"]
@@ -2639,7 +2815,7 @@
     "InfrastOffice": {
         "template": "Office.png",
         "maskRange": [1, 255],
-        "roi": [378, 94, 589, 529],
+        "roi": [378, 94, 900, 529],
         "templThreshold": 0.9
     },
     "InfrastOfficeMini": {
@@ -2650,7 +2826,7 @@
     },
     "InfrastProcessing": {
         "maskRange": [1, 255],
-        "roi": [378, 94, 589, 529],
+        "roi": [378, 94, 900, 529],
         "templThreshold": 0.95
     },
     "InfrastProcessingMini": {
@@ -2668,7 +2844,7 @@
     "InfrastReception": {
         "template": "Reception.png",
         "maskRange": [1, 255],
-        "roi": [378, 94, 589, 529],
+        "roi": [378, 94, 900, 529],
         "templThreshold": 0.95
     },
     "InfrastReceptionMini": {
@@ -2693,11 +2869,7 @@
         "action": "ClickSelf",
         "roi": [400, 610, 100, 110],
         "maxTimes": 3,
-        "next": [
-            "InfrastReceptionMessageBoardWithNew",
-            "InfrastReceptionMessageBoardWithoutNew",
-            "InfrastReceptionInteractive"
-        ]
+        "next": ["InfrastReceptionMessageBoardWithNew", "InfrastReceptionInteractive"]
     },
     "InfrastReceptionMessageBoardWithNew": {
         "action": "ClickSelf",
@@ -2716,12 +2888,6 @@
             "InfrastReceptionMessageBoard-Received",
             "InfrastReceptionMessageBoardWithNew@LoadingText"
         ]
-    },
-    "InfrastReceptionMessageBoardWithoutNew": {
-        "action": "DoNothing",
-        "baseTask": "InfrastReceptionMessageBoardWithNew",
-        "postDelay": 0,
-        "next": []
     },
     "InfrastReceptionMessageBoard-AccessRecord": {
         "doc": "进信息板的上周记录，不一定会有",
@@ -2757,7 +2923,7 @@
     "InfrastTraining": {
         "template": "Training.png",
         "maskRange": [1, 255],
-        "roi": [378, 94, 589, 529],
+        "roi": [378, 94, 900, 529],
         "templThreshold": 0.95
     },
     "InfrastTrainingMini": {
@@ -2800,13 +2966,13 @@
     },
     "InfrastSortByTrustButton": {
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "next": ["InfrastSortByTrustButtonClickAgain"]
     },
     "InfrastSortByTrustButtonClickAgain": {
         "action": "ClickSelf",
         "templThreshold": 0.7,
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "postDelay": 1000
     },
     "InfrastFilterMenuNotStationed": {
@@ -3010,6 +3176,12 @@
         "templThreshold": 0.8,
         "rectMove": [0, -95, 70, 50]
     },
+    "InfrastCloseQuickFormationExpandRole": {
+        "template": "BattleQuickFormationCollapseRole.png",
+        "action": "ClickSelf",
+        "roi": [1163, 0, 117, 133],
+        "next": ["Stop"]
+    },
     "InfrastClueVacancyNo1": {
         "template": "ClueVacancyNo1.png",
         "templThreshold": 0.75,
@@ -3068,8 +3240,7 @@
         "algorithm": "OcrDetect",
         "text": ["已达线索上限", "无法获取新的线索", "上限", "无法"],
         "reduceOtherTimes": ["SelectClue*3"],
-        "roi": [286, 550, 366, 130],
-        "next": ["CloseCluePageThenSendClue"]
+        "roi": [286, 550, 366, 130]
     },
     "BackToReceptionMain": {
         "algorithm": "JustReturn",
@@ -3112,13 +3283,7 @@
     "CloseCluePage": {
         "action": "ClickSelf",
         "roi": [930, 50, 120, 120],
-        "next": ["CloseCluePage", "SendClueFlag", "InfrastClueFriendNew", "ReceptionFlag"]
-    },
-    "SendClueFlag": {
-        "Doc": "这里识别的是自己的线索的new：如果获取完自己的线索、再获取完好友送的线索，自己的线索new还亮着，则说明自己的线索没获取成功，即线索满了",
-        "next": ["SendClues"],
-        "roi": [1150, 100, 130, 80],
-        "template": "ClueNew.png"
+        "next": ["CloseCluePage", "InfrastClueFriendNew", "ReceptionFlag"]
     },
     "UnlockClues": {
         "action": "ClickSelf",
@@ -3208,7 +3373,7 @@
     "ClueGiveTo2nd": {
         "template": "ClueCanBeSent.png",
         "maskRange": [1, 255],
-        "roi": [830, 220, 320, 100],
+        "roi": [830, 220, 340, 100],
         "next": ["ClueGiveTo2ndConfirm"]
     },
     "ClueGiveTo2ndConfirm": {
@@ -3220,7 +3385,7 @@
     "ClueGiveTo3rd": {
         "template": "ClueCanBeSent.png",
         "maskRange": [1, 255],
-        "roi": [830, 370, 320, 100],
+        "roi": [830, 370, 340, 100],
         "next": ["ClueGiveTo3rdConfirm"]
     },
     "ClueGiveTo3rdConfirm": {
@@ -3232,7 +3397,7 @@
     "ClueGiveTo4th": {
         "template": "ClueCanBeSent.png",
         "maskRange": [1, 255],
-        "roi": [830, 520, 320, 100],
+        "roi": [830, 520, 340, 100],
         "next": ["ClueGiveTo4thConfirm"]
     },
     "ClueGiveTo4thConfirm": {
@@ -3269,6 +3434,10 @@
         "text": ["空闲中"],
         "roi": [346, 626, 161, 52]
     },
+    "InfrastTrainingProcessing": {
+        "baseTask": "InfrastTrainingIdle",
+        "text": ["进度"]
+    },
     "InfrastTrainingCompleted": {
         "baseTask": "InfrastTrainingIdle",
         "text": ["训练完成"],
@@ -3282,8 +3451,19 @@
         "roi": [150, 620, 365, 35],
         "ocrReplace": [
             ["^\\[", ""],
-            ["\\]", "\n"]
+            ["\\]", "\n"],
+            ["(·|\\*|;|；)+", ""],
+            ["(A|a|α)+型$", "·α型"],
+            ["(B|b|β)+型$", "·β型"],
+            ["(Y|y|γ)+型$", "·γ型"],
+            [" [Aa]$", " α"],
+            [" [Bb]$", " β"],
+            [" [Yy]$", " γ"]
         ]
+    },
+    "InfrastTrainingSkillImg": {
+        "template": "empty.png",
+        "roi": [28, 558, 106, 108]
     },
     "InfrastTrainingLevel": {
         "template": "empty.png",
@@ -3293,24 +3473,14 @@
     "InfrastTrainingLevel1": {},
     "InfrastTrainingLevel2": {},
     "InfrastTrainingLevel3": {},
-    "InfrastTrainingTimeRec0": {
+    "InfrastTrainingTime": {
         "baseTask": "NumberOcrReplace",
-        "Doc": "HH",
-        "roi": [154, 645, 35, 40]
-    },
-    "InfrastTrainingTimeRec1": {
-        "baseTask": "NumberOcrReplace",
-        "Doc": "MM",
-        "roi": [188, 645, 35, 40]
-    },
-    "InfrastTrainingTimeRec2": {
-        "baseTask": "NumberOcrReplace",
-        "Doc": "SS",
-        "roi": [220, 645, 35, 40]
+        "roi": [150, 645, 100, 40]
     },
     "InfrastTrainingChooseSkillRec": {
-        "algorithm": "OcrDetect",
-        "text": [],
+        "algorithm": "FeatureMatch",
+        "template": "empty.png",
+        "count": 10,
         "roi": [470, 80, 145, 615]
     },
     "InfrastTrainingContinue1": {
@@ -3340,33 +3510,33 @@
     },
     "InfrastOperListTabSkillUnClicked": {
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "templThreshold": 0.7,
         "postDelay": 1500
     },
     "InfrastOperListTabWorkStatusUnClicked": {
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "templThreshold": 0.7,
         "postDelay": 1500
     },
     "InfrastOperListTabMoodDoubleClick": {
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "templThreshold": 0.7,
         "maxTimes": 2,
         "next": ["InfrastOperListTabMoodDoubleClick"]
     },
     "InfrastOperListTabMoodDoubleClickWhenUnclicked": {
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "templThreshold": 0.7,
         "next": ["InfrastOperListTabMoodClick"]
     },
     "InfrastOperListTabMoodClick": {
         "template": "InfrastOperListTabMoodDoubleClick.png",
         "action": "ClickSelf",
-        "roi": [645, 0, 635, 77],
+        "roi": [538, 6, 650, 64],
         "templThreshold": 0.7
     },
     "BattleStageName": {
@@ -3378,7 +3548,10 @@
             [".*命运的宠儿.*", "“命运的宠儿”"],
             [".*骑士对决.*", "“骑士对决”"],
             ["巍峨银.*", "巍峨银凇"],
-            ["猩红.*道", "猩红甬道"]
+            ["猩红.*道", "猩红甬道"],
+            [".*之以利", "啖之以利"],
+            ["((睁)|(峰))蝶战功", "峥嵘战功"],
+            ["夕娅忆", "夕娥忆"]
         ]
     },
     "BattleSelectFormation1": {
@@ -3430,7 +3603,7 @@
     "BattleQuickFormationExpandRole": {
         "action": "ClickSelf",
         "roi": [1152, 0, 128, 138],
-        "postDelay": 500
+        "next": ["Stop"]
     },
     "BattleQuickFormationRole": {
         "Doc": "base_task",
@@ -3441,7 +3614,7 @@
         "templThreshold": 0.7,
         "colorScales": [[90, 150]],
         "colorWithClose": false,
-        "postDelay": 500
+        "next": ["Stop"]
     },
     "BattleQuickFormationFilter": {
         "action": "ClickSelf",
@@ -3493,7 +3666,7 @@
     "BattleQuickFormationRole-All-OCR": {
         "baseTask": "BattleQuickFormationRole-All",
         "algorithm": "OcrDetect",
-        "text": ["全部"]
+        "text": ["ALL"]
     },
     "BattleQuickFormationRole-Pioneer": {
         "baseTask": "BattleQuickFormationRole"
@@ -3553,25 +3726,63 @@
         "algorithm": "OcrDetect",
         "fullMatch": true,
         "text": [],
-        "roi": [9, 232, 107, 20],
+        "rectMove": [-2, 233, 118, 22],
         "postDelay": 200,
         "specialParams_Doc": "Added for the YostarEN client. Used in BattleFormationTask.cpp for OCR manipulation. CN values are from OCRerConfig.h",
-        "specialParams": [140, 2, 0, 0]
+        "specialParams_doc": [
+            "bin_threshold",
+            "bin_expansion",
+            "trim_threshold_low",
+            "trim_threshold_high",
+            "左侧收缩时检测图的底部屏蔽高度",
+            "左侧收缩时连续n像素低于bin_thresh"
+        ],
+        "specialParams": [140, 2, 0, 0, 3, 10]
     },
     "BattleQuickFormationSkill1": {
         "algorithm": "JustReturn",
         "action": "ClickRect",
-        "specificRect": [15, 385, 80, 100]
+        "specificRect": [110, 385, 1, 100]
     },
     "BattleQuickFormationSkill2": {
         "algorithm": "JustReturn",
         "action": "ClickRect",
-        "specificRect": [15, 560, 80, 30]
+        "specificRect": [110, 560, 1, 30]
     },
     "BattleQuickFormationSkill3": {
         "algorithm": "JustReturn",
         "action": "ClickRect",
-        "specificRect": [15, 650, 80, 30]
+        "specificRect": [110, 650, 1, 30]
+    },
+    "BattleQuickFormationModulePage": {
+        "algorithm": "OcrDetect",
+        "action": "ClickSelf",
+        "text": ["分支"],
+        "roi": [185, 320, 180, 40],
+        "postDelay": 500
+    },
+    "BattleQuickFormationModule-Item": {
+        "template": "empty.png",
+        "action": "ClickSelf",
+        "roi": [5, 370, 80, 350],
+        "postDelay": 300
+    },
+    "BattleQuickFormationModule-0": {
+        "baseTask": "BattleQuickFormationModule-Item"
+    },
+    "BattleQuickFormationModule-1": {
+        "baseTask": "BattleQuickFormationModule-Item"
+    },
+    "BattleQuickFormationModule-2": {
+        "doc": "y模组匹配，由于y模组的字母有两种形式，所以需要两个模板",
+        "baseTask": "BattleQuickFormationModule-Item",
+        "template": ["BattleQuickFormationModule-2-A.png", "BattleQuickFormationModule-2-B.png"]
+    },
+    "BattleQuickFormationModule-3": {
+        "baseTask": "BattleQuickFormationModule-Item"
+    },
+    "BattleQuickFormationModule-4": {
+        "baseTask": "BattleQuickFormationModule-Item"
     },
     "BattleQuickFormationSkill-SwipeToTheDown": {
         "algorithm": "JustReturn",
@@ -3591,6 +3802,7 @@
         "text": ["开始行动", "开始作战", "开始推演", "开始突袭", "开始试炼", "开始测试"],
         "roi": [1000, 600, 280, 120],
         "action": "ClickSelf",
+        "preDelay": 500,
         "postDelay": 1000
     },
     "BattleStartPre@UseMedicine": {
@@ -3680,6 +3892,7 @@
         "baseTask": "BattleStart",
         "algorithm": "OcrDetect",
         "text": ["开始", "行动"],
+        "ocrReplace": [["干始", "开始"]],
         "roi": [999, 398, 222, 237]
     },
     "BattleStartSimulation": {
@@ -3809,13 +4022,15 @@
         "algorithm": "OcrDetect",
         "isAscii": true,
         "text": [],
-        "roi": [50, 0, 100, 40]
+        "roi": [50, 0, 100, 40],
+        "specialParams_doc": "Kill区域变化阈值, 模板匹配, 100=1.0; 正常在 0.997-1 之间波动, 少有0.995; _5->_6 的分数最高, 可达0.94",
+        "specialParams": [98]
     },
     "BattleCostData": {
-        "algorithm": "OcrDetect",
-        "isAscii": true,
-        "text": [],
-        "roi": [1199, 494, 80, 44]
+        "baseTask": "NumberOcrReplace",
+        "roi": [1199, 494, 80, 44],
+        "specialParams_doc": "Cost数字变化阈值, 模板匹配, 100=1.0; 正常在 0.997-1 之间波动, 少有0.995; _5->_6 的分数最高, 0.85上下",
+        "specialParams": [98]
     },
     "BattleSkillReady": {
         "rectMove": [-28, -140, 64, 64]
@@ -3943,6 +4158,8 @@
         "algorithm": "OcrDetect",
         "isAscii": true,
         "text": [],
+        "binThreshold": [210, 255],
+        "useRaw": false,
         "ocrReplace": [
             ["^.+-EX-?\\d+.*$", "_INVALID_"],
             ["^.+-S-?\\d+.*$", "_INVALID_"],
@@ -3962,7 +4179,7 @@
         "baseTask": "NumberOcrReplace",
         "isAscii": false,
         "text": [],
-        "roi": [73, 364, 221, 31]
+        "roi": [73, 378, 221, 31]
     },
     "StageDrops-BaseLine": {
         "template": "empty.png",
@@ -3978,7 +4195,7 @@
     "StageDrops-Item": {
         "template": "empty.png",
         "templThreshold": 0.65,
-        "roi": [0, -130, 138, 130],
+        "rectMove": [0, -130, 138, 130],
         "maskRange": [1, 255]
     },
     "StageDrops-DropType-ExpAndLMB": {
@@ -4111,7 +4328,7 @@
     },
     "DepotQuantity": {
         "template": "empty.png",
-        "specialParams": [110, 255]
+        "specialParams": [150, 255]
     },
     "DepotBegin": {
         "algorithm": "JustReturn",
@@ -4126,15 +4343,19 @@
     "DepotEnter": {
         "action": "ClickSelf",
         "template": [
-            "DepotEnter.png",
-            "DepotEnterDark.png",
-            "DepotEnterSami.png",
-            "DepotEnterMistCity.png",
-            "DepotEnterSiege.png",
-            "DepotEnterSarkaz.png",
-            "DepotEnterDelicious.png",
-            "DepotEnterGaming.png",
-            "DepotEnterDahuangCity.png"
+            "Default/DepotEnter.png",
+            "Dark/DepotEnter.png",
+            "Sami/DepotEnter.png",
+            "MistCity/DepotEnter.png",
+            "Siege/DepotEnter.png",
+            "Sarkaz/DepotEnter.png",
+            "Delicious/DepotEnter.png",
+            "Gaming/DepotEnter.png",
+            "DahuangCity/DepotEnter.png",
+            "Dreamland/DreamlandDefault/DepotEnter.png",
+            "Dreamland/DreamlandDark/DepotEnter.png",
+            "JieGarden/DepotEnter.png",
+            "AveMujica/DepotEnter.png"
         ],
         "maskRange": [1, 255],
         "roi": [1109, 560, 171, 160],
@@ -4161,6 +4382,11 @@
         "baseTask": "SlowlySwipeToTheRight",
         "specificRect": [1000, 350, 20, 20],
         "rectMove": [400, 350, 20, 20]
+    },
+    "InfrastSwipeToRightOfMainUi": {
+        "baseTask": "SlowlySwipeToTheRight",
+        "specificRect": [1080, 4, 1, 1],
+        "rectMove": [650, 4, 1, 1]
     },
     "InfrastOperListSwipeToTheLeft": {
         "baseTask": "SwipeToTheLeft",
@@ -4201,24 +4427,34 @@
     },
     "OperBoxBegin": {
         "algorithm": "JustReturn",
-        "next": ["OperBoxEnter", "OperBoxRoleTabSelect", "OperBoxRoleTab", "OperBoxEnter@ReturnButtons#next"]
+        "next": [
+            "OperBoxEnter",
+            "OperBoxRoleTabSelect",
+            "OperBoxSortTabSelect",
+            "OperBoxRoleTab",
+            "OperBoxEnter@ReturnButtons#next"
+        ]
     },
     "OperBoxEnter": {
         "template": [
-            "OperBoxEnter.png",
-            "OperBoxEnterDark.png",
-            "OperBoxEnterSami.png",
-            "OperBoxEnterMistCity.png",
-            "OperBoxEnterSiege.png",
-            "OperBoxEnterSarkaz.png",
-            "OperBoxEnterDelicious.png",
-            "OperBoxEnterGaming.png",
-            "OperBoxEnterDahuangCity.png"
+            "Default/OperBoxEnter.png",
+            "Dark/OperBoxEnter.png",
+            "Sami/OperBoxEnter.png",
+            "MistCity/OperBoxEnter.png",
+            "Siege/OperBoxEnter.png",
+            "Sarkaz/OperBoxEnter.png",
+            "Delicious/OperBoxEnter.png",
+            "Gaming/OperBoxEnter.png",
+            "DahuangCity/OperBoxEnter.png",
+            "Dreamland/DreamlandDefault/OperBoxEnter.png",
+            "Dreamland/DreamlandDark/OperBoxEnter.png",
+            "JieGarden/OperBoxEnter.png",
+            "AveMujica/OperBoxEnter.png"
         ],
         "action": "ClickSelf",
         "maskRange": [1, 255],
         "roi": [935, 300, 265, 110],
-        "next": ["OperBoxRoleTabSelect", "OperBoxRoleTab"],
+        "next": ["OperBoxRoleTabSelect", "OperBoxSortTabSelect", "OperBoxRoleTab"],
         "crop_doc": {
             "roi": [945, 301, 85, 78],
             "mask": []
@@ -4226,13 +4462,21 @@
     },
     "OperBoxRoleTabSelect": {
         "action": "ClickSelf",
-        "roi": [1200, 20, 80, 50],
-        "next": ["OperBoxRoleTab"],
-        "maxTimes": 3
+        "template": "BattleQuickFormationCollapseRole.png",
+        "roi": [1152, 0, 128, 138],
+        "next": ["OperBoxSortTabSelect", "OperBoxRoleTab"]
+    },
+    "OperBoxSortTabSelect": {
+        "action": "ClickSelf",
+        "algorithm": "OcrDetect",
+        "text": ["等级"],
+        "roi": [783, 0, 174, 136],
+        "next": ["OperBoxRoleTab"]
     },
     "OperBoxRoleTab": {
-        "action": "Stop",
-        "roi": [1195, 15, 80, 50]
+        "template": "BattleQuickFormationExpandRole.png",
+        "baseTask": "BattleQuickFormationExpandRole",
+        "action": "Stop"
     },
     "OperBoxSlowlySwipeToTheRight": {
         "doc": "6个横向干员防止识别不全990px",
@@ -4283,8 +4527,8 @@
     "OperBoxNameOCR": {
         "baseTask": "CharsNameOcrReplace",
         "text": [],
-        "roi": [4, 269, 122, 14],
-        "specialParams": [160, 4, 4, 0]
+        "rectMove": [0, 265, 128, 22],
+        "specialParams": [160, 4, 0, 0, 3, 10]
     },
     "OperBoxLevelOCR": {
         "algorithm": "OcrDetect",
@@ -4292,6 +4536,64 @@
         "isAscii": true,
         "text": [],
         "roi": [5, 230, 37, 23]
+    },
+    "OperParadoxBegin": {
+        "algorithm": "JustReturn",
+        "next": ["OperOpenInformationMenu"],
+        "preDelay": 500,
+        "postDelay": 500
+    },
+    "OperOpenInformationMenu": {
+        "action": "ClickSelf",
+        "template": "OperInformationMenu.png",
+        "roi": [447, 0, 158, 135],
+        "next": ["OperOpenParadox"],
+        "preDelay": 500,
+        "postDelay": 500
+    },
+    "OperOpenParadox": {
+        "action": "ClickSelf",
+        "template": "OperParadox.png",
+        "roi": [904, 526, 249, 172],
+        "preDelay": 500,
+        "postDelay": 500
+    },
+    "OperOpenParadoxChooseSkill": {
+        "action": "ClickSelf",
+        "template": "OperParadoxBegin.png",
+        "roi": [1009, 603, 260, 114],
+        "postDelay": 1000,
+        "next": ["#self", "Stop"]
+    },
+    "ParadoxChooseSkill1": {
+        "algorithm": "JustReturn",
+        "action": "ClickRect",
+        "specificRect": [970, 150, 50, 50]
+    },
+    "ParadoxChooseSkill2": {
+        "algorithm": "JustReturn",
+        "action": "ClickRect",
+        "specificRect": [970, 370, 50, 50]
+    },
+    "ParadoxChooseSkill3": {
+        "algorithm": "JustReturn",
+        "action": "ClickRect",
+        "specificRect": [970, 570, 50, 50]
+    },
+    "ParadoxReturnUntilOperList": {
+        "baseTask": "ParadoxReturn",
+        "template": "Return.png",
+        "next": ["ParadoxReturnOperListFlag", "ParadoxReturnUntilOperList"]
+    },
+    "ParadoxReturnOperListFlag": {
+        "action": "Stop",
+        "roi": [1152, 0, 128, 138],
+        "template": ["BattleQuickFormationExpandRole.png", "BattleQuickFormationCollapseRole.png"]
+    },
+    "ParadoxReturn": {
+        "baseTask": "Return",
+        "template": "Return.png",
+        "postDelay": 1000
     },
     "SSSBegin": {
         "Doc": "保全派驻",
@@ -4463,7 +4765,7 @@
         "exceededNext": ["Copilot@ChapterSwipeToTheRightAndPlot"]
     },
     "Copilot@ChapterSwipeToTheRightAndPlot": {
-        "doc": "划五次到最右，然后扫有无初见剧情",
+        "doc": "划 10 次到最右，然后扫有无初见剧情",
         "baseTask": "ChapterSwipeToTheRight",
         "exceededNext": ["Copilot@ClickPlotStage"]
     },
@@ -4504,17 +4806,40 @@
         "next": ["Copilot@ClickCornerUntilEndOfAction"]
     },
     "Copilot@ClickCornerUntilStartButton": {
-        "Doc": "三星之后"
+        "Doc": "三星之后",
+        "next": [
+            "Copilot@BattleStartPreFlag",
+            "Copilot@BattleStartPreFlag-Return",
+            "Copilot@ClickCornerUntilStartButton"
+        ]
     },
     "Copilot@BattleStartPreFlag": {
-        "baseTask": "BattleStartPreFlag",
-        "roi": [0, 0, 1280, 720]
+        "baseTask": "BattleStartPreFlag"
+    },
+    "Copilot@BattleStartPreFlag-Return": {
+        "doc": "使用左上角的黑色返回按钮作为flag",
+        "baseTask": "Return",
+        "template": "Return.png",
+        "action": "DoNothing",
+        "preDelay": 500,
+        "postDelay": 1000
     },
     "ClickCornerUntilStartButton": {
         "algorithm": "JustReturn",
         "action": "ClickRect",
         "specificRect": [1000, 120, 270, 10],
         "next": ["BattleStartPreFlag", "ClickCornerUntilStartButton"]
+    },
+    "ClickCornerUntilReturnButton": {
+        "algorithm": "JustReturn",
+        "action": "ClickRect",
+        "specificRect": [1000, 120, 270, 10],
+        "next": ["ParadoxReturnFlag", "ClickCornerUntilReturnButton"]
+    },
+    "ParadoxReturnFlag": {
+        "baseTask": "ParadoxReturn",
+        "template": "Return.png",
+        "action": "DoNothing"
     },
     "BattleStartPreFlag": {
         "baseTask": "BattleStartPre",
@@ -4690,16 +5015,21 @@
     "GachaEnter": {
         "action": "ClickSelf",
         "template": [
-            "GachaEnter.png",
-            "GachaEnterDark.png",
-            "GachaEnterSami.png",
-            "GachaEnterMistCity.png",
-            "GachaEnterSiege.png",
-            "GachaEnterSarkaz.png",
-            "GachaEnterDelicious.png",
-            "GachaEnterGaming.png",
-            "GachaEnterDahuangCity.png"
+            "Default/GachaEnter.png",
+            "Dark/GachaEnter.png",
+            "Sami/GachaEnter.png",
+            "MistCity/GachaEnter.png",
+            "Siege/GachaEnter.png",
+            "Sarkaz/GachaEnter.png",
+            "Delicious/GachaEnter.png",
+            "Gaming/GachaEnter.png",
+            "DahuangCity/GachaEnter.png",
+            "Dreamland/DreamlandDefault/GachaEnter.png",
+            "Dreamland/DreamlandDark/GachaEnter.png",
+            "JieGarden/GachaEnter.png",
+            "AveMujica/GachaEnter.png"
         ],
+        "maskRange": [1, 255],
         "roi": [1052, 443, 228, 156],
         "next": ["GachaEnter", "GachaEnter@LoadingText", "DoGacha"],
         "crop_doc": {
@@ -4781,76 +5111,219 @@
         "roi": [740, 565, 300, 65],
         "preDelay": 200
     },
-    "GreenGrass@DuelChannel@Begin": {
-        "doc": "争锋频道：青草城",
-        "algorithm": "OcrDetect",
-        "action": "ClickSelf",
-        "text": ["加入赛事"],
-        "roi": [1072, 581, 201, 125],
-        "next": ["GreenGrass@DuelChannel@ChooseMode", "GreenGrass@DuelChannel@Begin"]
-    },
-    "GreenGrass@DuelChannel@ChooseMode": {
-        "algorithm": "OcrDetect",
-        "action": "ClickSelf",
-        "text": ["自娱自乐"],
-        "roi": [228, 584, 864, 58],
-        "next": ["GreenGrass@DuelChannel@Enter"]
-    },
-    "GreenGrass@DuelChannel@Enter": {
-        "algorithm": "OcrDetect",
-        "action": "ClickSelf",
-        "text": ["开始", "游戏"],
-        "roi": [1107, 499, 157, 157],
-        "next": ["GreenGrass@DuelChannel@Loading"]
-    },
-    "GreenGrass@DuelChannel@Loading": {
+    "Store@Begin": {
+        "doc": "绿票、黄票商店",
         "algorithm": "JustReturn",
-        "postDelay": 2000,
+        "next": ["Store@EnterStore", "Store@EnterTicketStore"]
+    },
+    "Store@EnterStore": {
+        "baseTask": "Mall",
+        "template": [
+            "Default/Mall.png",
+            "Dark/Mall.png",
+            "Sami/Mall.png",
+            "MistCity/Mall.png",
+            "Siege/Mall.png",
+            "Sarkaz/Mall.png",
+            "Delicious/Mall.png",
+            "Gaming/Mall.png",
+            "DahuangCity/Mall.png",
+            "Dreamland/DreamlandDefault/Mall.png",
+            "Dreamland/DreamlandDark/Mall.png",
+            "JieGarden/Mall.png",
+            "AveMujica/Mall.png"
+        ],
+        "next": ["Store@EnterTicketStore@LoadingIcon", "Store@EnterTicketStore"]
+    },
+    "Store@EnterTicketStore": {
+        "algorithm": "OcrDetect",
+        "action": "ClickSelf",
+        "text": ["凭证交易所"],
+        "roi": [730, 38, 215, 134],
+        "postDelay": 1000,
+        "next": ["Store@EnterTicketStore@LoadingIcon", "Store@ChooseTicketType"]
+    },
+    "Store@ChooseTicketType": {
+        "algorithm": "JustReturn",
+        "doc": "base_task"
+    },
+    "Store@ChooseMaxAmount": {
+        "algorithm": "OcrDetect",
+        "text": ["最多"],
+        "action": "ClickSelf"
+    },
+    "Store@UnderfundedOCR": {
+        "baseTask": "NumberOcrReplace",
+        "text": ["0"],
+        "fullMatch": true
+    },
+    "Store@Purchase": {
+        "algorithm": "OcrDetect",
+        "action": "ClickSelf",
+        "text": [],
+        "postDelay": 1000
+    },
+    "GreenTicket@Store@ChooseTicketType": {
+        "algorithm": "OcrDetect",
+        "action": "ClickSelf",
+        "text": ["资质凭证区"],
+        "roi": [108, 163, 124, 56],
+        "next": ["Store@EnterTicketStore@LoadingIcon", "GreenTicket@Store@ClickFirstFloor"]
+    },
+    "GreenTicket@Store@ClickFirstFloor": {
+        "algorithm": "OcrDetect",
+        "text": ["1", "T", "I"],
+        "isAscii": true,
+        "action": "ClickSelf",
+        "roi": [263, 196, 35, 73],
+        "sub": ["SlowlySwipeToTheLeft"],
+        "postDelay": 1000,
+        "next": ["GreenTicket@Store@ClickItemList#next", "GreenTicket@Store@ClickSecondFloor"]
+    },
+    "GreenTicket@Store@ClickItem": {
+        "algorithm": "FeatureMatch",
+        "template": "empty.png",
+        "detector": "BRISK",
+        "count": 20,
+        "action": "ClickSelf",
+        "roi": [318, 139, 956, 484],
+        "next": ["GreenTicket@Store@ChooseMaxAmount"]
+    },
+    "GreenTicket@Store@ClickItemList": {
+        "algorithm": "JustReturn",
         "next": [
-            "GreenGrass@DuelChannel@ChooseFlag",
-            "GreenGrass@DuelChannel@Enter",
-            "GreenGrass@DuelChannel@End",
-            "GreenGrass@DuelChannel@Loading"
+            "GreenTicket@Store@ClickItem_Headhunting_Permit",
+            "GreenTicket@Store@ClickItem_Orundum",
+            "GreenTicket@Store@ClickItem_LMD",
+            "GreenTicket@Store@ClickItem_Furniture_Part",
+            "GreenTicket@Store@ClickItem_Recruitment_Permit",
+            "GreenTicket@Store@ClickItem_Tactical_Battle_Record",
+            "GreenTicket@Store@ClickItem_Pure_Gold"
         ]
     },
-    "GreenGrass@DuelChannel@ChooseFlag": {
-        "algorithm": "OcrDetect",
-        "text": ["剩余礼物"],
-        "roi": [562, 0, 184, 125],
+    "GreenTicket@Store@ClickItem_Headhunting_Permit": {
+        "doc": "单抽",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/7003.png"
+    },
+    "GreenTicket@Store@ClickItem_Orundum": {
+        "doc": "合成玉",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/4003.png"
+    },
+    "GreenTicket@Store@ClickItem_LMD": {
+        "doc": "龙门币",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/4001.png"
+    },
+    "GreenTicket@Store@ClickItem_Furniture_Part": {
+        "doc": "家具部件",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/3401.png",
+        "detector": "SIFT",
+        "count": 15
+    },
+    "GreenTicket@Store@ClickItem_Recruitment_Permit": {
+        "doc": "招募许可",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/7001.png"
+    },
+    "GreenTicket@Store@ClickItem_Tactical_Battle_Record": {
+        "doc": "战斗记录",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/2003.png"
+    },
+    "GreenTicket@Store@ClickItem_Pure_Gold": {
+        "doc": "赤金",
+        "baseTask": "GreenTicket@Store@ClickItem",
+        "template": "items/3003.png",
+        "detector": "SIFT",
+        "count": 12
+    },
+    "GreenTicket@Store@ChooseMaxAmount": {
+        "roi": [1027, 405, 79, 53],
+        "next": ["GreenTicket@Store@UnderfundedOCR", "GreenTicket@Store@Purchase"]
+    },
+    "GreenTicket@Store@UnderfundedOCR": {
+        "roi": [876, 405, 85, 51]
+    },
+    "GreenTicket@Store@Purchase": {
+        "roi": [872, 556, 137, 48],
+        "text": ["购买物品"],
+        "next": ["GreenTicket@Store@PurchasedConfirm"]
+    },
+    "GreenTicket@Store@PurchasedConfirm": {
+        "baseTask": "CreditShop-Bought",
+        "template": "CreditShop-Bought.png",
         "next": [
-            "GreenGrass@DuelChannel@ChooseLeft",
-            "GreenGrass@DuelChannel@ChooseRight",
-            "GreenGrass@DuelChannel@ChooseRandom"
+            "GreenTicket@Store@PurchasedConfirm",
+            "GreenTicket@Store@ClickItemList#next",
+            "GreenTicket@Store@ClickSecondFloor",
+            "Stop"
         ]
     },
-    "GreenGrass@DuelChannel@ChooseLeft": {
-        "algorithm": "MatchTemplate",
-        "template": "GreenGrass@DuelChannel@duck.png",
-        "roi": [13, 118, 54, 394],
-        "action": "ClickRect",
-        "specificRect": [65, 608, 44, 63],
-        "next": ["GreenGrass@DuelChannel@Loading"]
+    "GreenTicket@Store@ClickSecondFloor": {
+        "algorithm": "OcrDetect",
+        "text": ["2"],
+        "action": "ClickSelf",
+        "isAscii": false,
+        "roi": [262, 364, 38, 58],
+        "maxTimes": 1,
+        "sub": ["SlowlySwipeToTheLeft*3"],
+        "postDelay": 1000,
+        "next": ["GreenTicket@Store@ClickItemList#next", "Stop"]
     },
-    "GreenGrass@DuelChannel@ChooseRight": {
-        "algorithm": "MatchTemplate",
-        "template": "GreenGrass@DuelChannel@duck.png",
-        "roi": [1201, 117, 58, 386],
-        "action": "ClickRect",
-        "specificRect": [1156, 596, 56, 84],
-        "next": ["GreenGrass@DuelChannel@Loading"]
-    },
-    "GreenGrass@DuelChannel@ChooseRandom": {
-        "algorithm": "JustReturn",
-        "action": "ClickRect",
-        "specificRect": [65, 608, 44, 63],
-        "next": ["GreenGrass@DuelChannel@Loading"]
-    },
-    "GreenGrass@DuelChannel@End": {
+    "YellowTicket@Store@ChooseTicketType": {
         "algorithm": "OcrDetect",
         "action": "ClickSelf",
-        "roi": [1010, 611, 212, 109],
-        "text": ["返回主页"],
-        "next": ["GreenGrass@DuelChannel@Begin", "GreenGrass@DuelChannel@End"]
+        "text": ["高级凭证区"],
+        "roi": [108, 267, 124, 47],
+        "postDelay": 1000,
+        "next": [
+            "YellowTicket@Store@ClickItem_Headhunting_Permit",
+            "YellowTicket@Store@ClickItem_Ten-roll_Headhunting_Permit",
+            "Store@EnterTicketStore@LoadingIcon",
+            "YellowTicket@Store@Swipe"
+        ]
+    },
+    "YellowTicket@Store@Swipe": {
+        "algorithm": "JustReturn",
+        "sub": ["SlowlySwipeToTheLeft*6"],
+        "next": [
+            "YellowTicket@Store@ClickItem_Headhunting_Permit",
+            "YellowTicket@Store@ClickItem_Ten-roll_Headhunting_Permit",
+            "Stop"
+        ]
+    },
+    "YellowTicket@Store@ClickItem_Headhunting_Permit": {
+        "doc": "单抽卷",
+        "algorithm": "FeatureMatch",
+        "template": "items/7003.png",
+        "detector": "BRISK",
+        "count": 20,
+        "action": "ClickSelf",
+        "roi": [318, 139, 956, 484],
+        "next": ["YellowTicket@Store@Purchase"]
+    },
+    "YellowTicket@Store@ClickItem_Ten-roll_Headhunting_Permit": {
+        "doc": "十连",
+        "baseTask": "YellowTicket@Store@ClickItem_Headhunting_Permit",
+        "template": "items/7004.png"
+    },
+    "YellowTicket@Store@Purchase": {
+        "roi": [872, 556, 137, 48],
+        "text": ["购买物品"],
+        "next": ["YellowTicket@Store@PurchasedConfirm"]
+    },
+    "YellowTicket@Store@PurchasedConfirm": {
+        "baseTask": "CreditShop-Bought",
+        "template": "CreditShop-Bought.png",
+        "next": [
+            "YellowTicket@Store@PurchasedConfirm",
+            "YellowTicket@Store@ClickItem_Headhunting_Permit",
+            "YellowTicket@Store@ClickItem_Ten-roll_Headhunting_Permit",
+            "Stop"
+        ]
     },
     "UseSupportUnit-Cancel": {
         "doc": "若识别到 <招募助战> 文字就点击屏幕下方取消选择",
@@ -4871,7 +5344,7 @@
     },
     "UseSupportUnit-InSupportList": {
         "doc": "通过识别右上角 <更新助战列表> 文字左边的 Icon 或者 冷却倒计时左边的 Icon 判断是否已进入助战列表",
-        "template": ["UseSupportUnit-Refresh", "UseSupportUnit-RefreshCooldown"],
+        "template": ["UseSupportUnit-Refresh.png", "UseSupportUnit-RefreshCooldown.png"],
         "roi": [1096, 12, 61, 52]
     },
     "UseSupportUnit-LeaveSupportList": {
@@ -4881,7 +5354,7 @@
     },
     "UseSupportUnit-LeaveSupportList-InSupportList": {
         "baseTask": "UseSupportUnit-InSupportList",
-        "template": ["UseSupportUnit-Refresh", "UseSupportUnit-RefreshCooldown"],
+        "template": ["UseSupportUnit-Refresh.png", "UseSupportUnit-RefreshCooldown.png"],
         "next": ["UseSupportUnit-ReturnButton"]
     },
     "UseSupportUnit-MaxSpecLvl-1": {

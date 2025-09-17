@@ -167,6 +167,9 @@ bool asst::InfrastTask::set_params(const json::value& params)
     bool reception_message_board = params.get("reception_message_board", true);
     m_reception_task_ptr->set_receive_message_board(reception_message_board);
 
+    bool reception_clue_exchange = params.get("reception_clue_exchange", true);
+    m_reception_task_ptr->set_enable_clue_exchange(reception_clue_exchange);
+
     bool replenish = params.get("replenish", false);
     m_replenish_task_ptr->set_enable(replenish);
 
@@ -275,7 +278,7 @@ bool asst::InfrastTask::parse_and_set_custom_config(const std::filesystem::path&
                     // name数组此后可以作废
                     std::set<std::string> name_set;
                     name_set.insert(room_config.names.begin(), room_config.names.end());
-                    ranges::for_each(
+                    std::ranges::for_each(
                         ori_operator_groups,
                         [name_set, &room_config](std::pair<std::string, std::vector<std::string>> pair) {
                             if (name_set.contains(pair.first)) {

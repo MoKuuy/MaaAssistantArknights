@@ -1,6 +1,6 @@
 #include "InfrastReceptionTask.h"
 
-#include "Utils/Ranges.hpp"
+#include <ranges>
 
 #include "Config/TaskData.h"
 #include "Controller/Controller.h"
@@ -14,9 +14,13 @@ bool asst::InfrastReceptionTask::_run()
 {
     m_all_available_opers.clear();
 
-    swipe_to_the_right_of_main_ui();
+    swipe_to_the_left_of_main_ui();
+
     if (!enter_facility()) {
-        return false;
+        swipe_to_right_of_main_ui();
+        if (!enter_facility()) {
+            return false;
+        }
     }
 
     if (m_receive_message_board) {
@@ -26,11 +30,19 @@ bool asst::InfrastReceptionTask::_run()
 
     close_end_of_clue_exchange();
 
-    // 防止送线索把可以填入的送了
+    get_friend_clue();
+    if (need_exit()) {
+        return false;
+    }
+
     use_clue();
     back_to_reception_main();
 
-    get_clue();
+    if (need_exit()) {
+        return false;
+    }
+
+    get_self_clue();
     if (need_exit()) {
         return false;
     }
@@ -43,12 +55,10 @@ bool asst::InfrastReceptionTask::_run()
     }
 
     if (!m_skip_shift) {
-        shift();
-    }
-    else {
-        Log.info("skip shift in rotation mode");
+        return shift();
     }
 
+    Log.info("skip shift in rotation mode");
     return true;
 }
 
@@ -63,12 +73,31 @@ bool asst::InfrastReceptionTask::close_end_of_clue_exchange()
     return task_temp.run();
 }
 
-bool asst::InfrastReceptionTask::get_clue()
+bool asst::InfrastReceptionTask::get_friend_clue()
 {
-    ProcessTask task_temp(
-        *this,
-        { "InfrastClueSelfNew", "InfrastClueFriendNew", "InfrastClueSelfMaybeFull", "ReceptionFlag" });
+    ProcessTask task_temp(*this, { "InfrastClueFriendNew", "ReceptionFlag" });
     return task_temp.set_retry_times(ProcessTask::RetryTimesDefault).run();
+}
+
+bool asst::InfrastReceptionTask::get_self_clue()
+{
+    constexpr int kRetryTimesDefault = ProcessTask::RetryTimesDefault;
+    auto run_with_retries = [&](const std::vector<std::string>& tasks) {
+        ProcessTask task(*this, tasks);
+        task.set_retry_times(kRetryTimesDefault);
+        return task.run();
+    };
+
+    run_with_retries({ "InfrastClueSelfNew", "InfrastClueSelfMaybeFull", "ReceptionFlag" });
+
+    if (!ProcessTask(*this, { "InfrastClueSelfFull" }).set_retry_times(0).run()) {
+        return run_with_retries({ "CloseCluePage", "ReceptionFlag" });
+    }
+    if (m_enable_clue_exchange) {
+        return run_with_retries({ "CloseCluePageThenSendClue" });
+    }
+
+    return run_with_retries({ "CloseCluePage", "ReceptionFlag" });
 }
 
 bool asst::InfrastReceptionTask::use_clue()
@@ -79,7 +108,7 @@ bool asst::InfrastReceptionTask::use_clue()
 
     proc_clue_vacancy();
     sleep(1000);
-    if (unlock_clue_exchange()) {
+    if (m_enable_clue_exchange && unlock_clue_exchange()) {
         proc_clue_vacancy();
     }
 
@@ -92,7 +121,7 @@ bool asst::InfrastReceptionTask::use_clue()
     vacancy_analyzer.analyze();
 
     const auto& vacancy = vacancy_analyzer.get_vacancy();
-    for (const auto& id : vacancy | views::keys) {
+    for (const auto& id : vacancy | std::views::keys) {
         Log.trace("InfrastReceptionTask | Vacancy", id);
     }
 
@@ -202,23 +231,21 @@ bool asst::InfrastReceptionTask::shift()
     }
     sleep(raw_task_ptr->post_delay);
 
-    for (int i = 0; i <= OperSelectRetryTimes; ++i) {
+    close_quick_formation_expand_role();
+
+    int retry_times;
+    for (retry_times = 0; retry_times <= OperSelectRetryTimes; ++retry_times) {
         if (need_exit()) {
             return false;
         }
 
         if (is_use_custom_opers()) {
-            bool name_select_ret = swipe_and_select_custom_opers();
-            if (name_select_ret) {
+            if (swipe_and_select_custom_opers()) {
                 break;
             }
-            else {
-                swipe_to_the_left_of_operlist();
-                continue;
-            }
+            swipe_to_the_left_of_operlist();
+            continue;
         }
-
-        click_clear_button();
 
         if (!opers_detect_with_swipe()) {
             return false;
@@ -226,6 +253,9 @@ bool asst::InfrastReceptionTask::shift()
         swipe_to_the_left_of_operlist();
 
         optimal_calc();
+
+        // 清空按钮放到识别完之后，现在通过切换职业栏来回到界面最左侧，先清空会导致当前设施里的人排到最后面
+        click_clear_button();
         bool ret = opers_choose();
         if (!ret) {
             m_all_available_opers.clear();
@@ -234,6 +264,11 @@ bool asst::InfrastReceptionTask::shift()
         }
         break;
     }
+
+    if (retry_times > OperSelectRetryTimes) {
+        return false;
+    }
+
     click_confirm_button();
     return true;
 }

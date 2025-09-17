@@ -1,6 +1,6 @@
 // <copyright file="AsstFightTask.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System.Collections.Generic;
 using MaaWpfGui.Services;
@@ -59,7 +60,7 @@ public class AsstFightTask : AsstBaseTask
     public int Series { get; set; } = 1;
 
     /// <summary>
-    /// Gets or sets a value indicating whether gets or sets 葛朗台
+    /// Gets or sets a value indicating whether 葛朗台
     /// </summary>
     [JsonProperty("DrGrandet")]
     public bool IsDrGrandet { get; set; }

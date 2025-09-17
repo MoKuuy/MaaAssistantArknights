@@ -37,7 +37,7 @@
             <Border
                 Width="210"
                 MaxWidth="210"
-                Background="{DynamicResource TransparentRegionBrush}"
+                Background="{DynamicResource RegionBrushOpacity25}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="4">
@@ -53,6 +53,7 @@
                         MinHeight="220"
                         Margin="0,10,0,0"
                         HorizontalAlignment="Center"
+                        d:ItemsSource="{d:SampleData ItemCount=16}"
                         dd:DragDrop.IsDragSource="{Binding Idle}"
                         dd:DragDrop.IsDropTarget="{Binding Idle}"
                         Background="Transparent"
@@ -116,9 +117,7 @@
                                         </TextBlock.Style>
                                     </controls:TextBlock>
 
-                                    <hc:ButtonGroup
-                                        Grid.Column="1"
-                                        HorizontalAlignment="Stretch">
+                                    <hc:ButtonGroup Grid.Column="1" HorizontalAlignment="Stretch">
                                         <RadioButton
                                             Margin="0"
                                             HorizontalAlignment="Stretch"
@@ -160,18 +159,29 @@
                             Width="90"
                             Height="30"
                             VerticalAlignment="Top"
-                            Background="{DynamicResource TransparentRegionBrush}"
+                            Background="{DynamicResource RegionBrushOpacity25}"
                             Command="{s:Action InverseSelected}"
                             Content="{Binding InverseShowText}"
                             IsEnabled="{Binding Idle}"
                             Visibility="{c:Binding ShowInverse}">
                             <hc:SplitButton.DropDownContent>
                                 <Menu>
-                                    <MenuItem
-                                        Width="90"
-                                        Padding="19,5,0,5"
-                                        Command="{s:Action ChangeInverseMode}"
-                                        Header="{Binding InverseMenuText}" />
+                                    <Menu.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" />
+                                        </ItemsPanelTemplate>
+                                    </Menu.ItemsPanel>
+                                    <MenuItem Command="{s:Action ChangeInverseMode}">
+                                        <MenuItem.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock
+                                                    Padding="10,0,0,0"
+                                                    HorizontalAlignment="Center"
+                                                    Text="{Binding DataContext.InverseMenuText, RelativeSource={RelativeSource AncestorType=hc:SplitButton}}"
+                                                    TextAlignment="Center" />
+                                            </DataTemplate>
+                                        </MenuItem.HeaderTemplate>
+                                    </MenuItem>
                                 </Menu>
                             </hc:SplitButton.DropDownContent>
                         </hc:SplitButton>
@@ -241,17 +251,17 @@
                     Width="100"
                     Height="50"
                     Margin="5"
-                    Command="{s:Action Stop}"
+                    Command="{s:Action ManualStop}"
                     Content="{DynamicResource Stop}"
                     IsEnabled="{c:Binding '!Stopping'}"
-                    Visibility="{c:Binding 'Inited and (!Idle or Stopping)'}" />
+                    Visibility="{c:Binding 'Inited and (!Idle or Stopping) and !(RoguelikeInCombatAndShowWait and !Waiting)'}" />
                 <Button
                     Width="100"
                     Height="50"
                     Margin="5"
                     Command="{s:Action WaitAndStop}"
                     Content="{DynamicResource WaitAndStop}"
-                    Visibility="{c:Binding 'RoguelikeInCombatAndShowWait and !Waiting and Inited and !Idle'}" />
+                    Visibility="{c:Binding 'Inited and !Idle and (RoguelikeInCombatAndShowWait and !Waiting)'}" />
             </Grid>
 
             <!--<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment ="Center" >-->
@@ -335,14 +345,14 @@
                 Visibility="{c:Binding !TaskSettingVisibilities.AfterAction,
                                        FalseToVisibility=Hidden}">
                 <RadioButton
-                    hc:VisualElement.HighlightBackground="{DynamicResource TransparentRegionBrush}"
-                    Background="{DynamicResource TransparentRegionBrush}"
+                    hc:VisualElement.HighlightBackground="{DynamicResource RegionBrushOpacity25}"
+                    Background="{DynamicResource RegionBrushOpacity25}"
                     Content="{DynamicResource GeneralSettings}"
                     IsChecked="{c:Binding !TaskSettingVisibilities.EnableAdvancedSettings}"
                     IsEnabled="True" />
                 <RadioButton
-                    hc:VisualElement.HighlightBackground="{DynamicResource TransparentRegionBrush}"
-                    Background="{DynamicResource TransparentRegionBrush}"
+                    hc:VisualElement.HighlightBackground="{DynamicResource RegionBrushOpacity25}"
+                    Background="{DynamicResource RegionBrushOpacity25}"
                     Content="{DynamicResource AdvancedSettings}"
                     IsChecked="{c:Binding TaskSettingVisibilities.EnableAdvancedSettings}"
                     IsEnabled="{c:Binding TaskSettingVisibilities.AdvancedSettingsVisibility}" />
@@ -354,7 +364,10 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Bottom"
                 PanningMode="Both">
-                <controls:TextBlock Text="{Binding StagesOfToday}" TextWrapping="Wrap" />
+                <controls:TextBlock
+                    d:Text="{DynamicResource TodaysStageTip}"
+                    Text="{Binding StagesOfToday}"
+                    TextWrapping="Wrap" />
             </hc:ScrollViewer>
         </Grid>
 
@@ -373,6 +386,7 @@
             <ItemsControl
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
+                d:ItemsSource="{d:SampleData ItemCount=30}"
                 ItemsSource="{Binding LogItemViewModels}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -390,15 +404,52 @@
                                 Foreground="{DynamicResource TraceLogBrush}"
                                 Text="{Binding Time}"
                                 TextWrapping="Wrap" />
-                            <controls:TextBlock
+                            <Grid
                                 Grid.Column="1"
                                 Margin="0,5"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Stretch"
-                                FontWeight="{Binding Weight}"
-                                ForegroundKey="{Binding Color}"
-                                Text="{Binding Content}"
-                                TextWrapping="Wrap" />
+                                ToolTip="{Binding ToolTip}"
+                                ToolTipService.InitialShowDelay="200">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <controls:TextBlock
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Stretch"
+                                    FontWeight="{Binding Weight}"
+                                    ForegroundKey="{Binding Color}"
+                                    Text="{Binding Content}"
+                                    TextWrapping="Wrap" />
+                                <controls:TooltipBlock
+                                    Grid.Column="1"
+                                    Margin="10,0,0,0"
+                                    PathDate="M 0 0 L 0.5 0.5 L 0 1"
+                                    PathStrokeThickness="1.5"
+                                    TextBlockText=""
+                                    Visibility="{c:Binding ShowToolTip}" />
+                                <!--<Border
+                                    Grid.Column="1"
+                                    Width="15"
+                                    Height="15"
+                                    Margin="10,0,0,0"
+                                    Background="{DynamicResource MouseOverRegionBrushOpacity75}"
+                                    Style="{StaticResource BorderCircular}"
+                                    Visibility="{c:Binding ShowToolTip}">
+                                    <Path
+                                        Width="8"
+                                        Height="8"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Data="M 0 0 L 0.5 0.5 L 0 1"
+                                        Stretch="Uniform"
+                                        Stroke="{DynamicResource PrimaryTextBrush}"
+                                        StrokeThickness="2" />
+                                </Border>-->
+                            </Grid>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

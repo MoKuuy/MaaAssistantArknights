@@ -1,6 +1,6 @@
 // <copyright file="RoguelikeSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -18,15 +19,18 @@ using System.IO;
 using System.Linq;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
+using MaaWpfGui.Main;
 using MaaWpfGui.Models.AsstTasks;
 using MaaWpfGui.Services;
+using MaaWpfGui.Utilities;
 using MaaWpfGui.Utilities.ValueType;
 using MaaWpfGui.ViewModels.UI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Mode = MaaWpfGui.Configuration.Single.MaaTask.RoguelikeMode;
+using Theme = MaaWpfGui.Configuration.Single.MaaTask.RoguelikeTheme;
 
 namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
-using Theme = RoguelikeTheme;
 public class RoguelikeSettingsUserControlModel : TaskViewModel
 {
     static RoguelikeSettingsUserControlModel()
@@ -38,106 +42,134 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
 
     public void InitRoguelike()
     {
+        GenerateRoguelikeThemeList();
         UpdateRoguelikeDifficultyList();
         UpdateRoguelikeModeList();
+        UpdateRoguelikeRolesList();
         UpdateRoguelikeSquadList();
-
+        UpdateRoguelikeStartWithAllDict();
         UpdateRoguelikeCoreCharList();
+    }
+
+    private void GenerateRoguelikeThemeList()
+    {
+        RoguelikeThemeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeThemePhantom"), Value = Theme.Phantom });
+        RoguelikeThemeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeThemeMizuki"), Value = Theme.Mizuki });
+        RoguelikeThemeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeThemeSami"), Value = Theme.Sami });
+        RoguelikeThemeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeThemeSarkaz"), Value = Theme.Sarkaz });
+        if (SettingsViewModel.GameSettings.ClientType is "Official" or "Bilibili")
+        { // 外服暂未开放界园
+            RoguelikeThemeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeThemeJieGarden"), Value = Theme.JieGarden });
+        }
     }
 
     private void UpdateRoguelikeDifficultyList()
     {
         int maxThemeDifficulty = GetMaxDifficultyForTheme(RoguelikeTheme);
+        var difficulty = RoguelikeDifficulty;
 
-        if (RoguelikeDifficultyList.Count == 0)
+        // 0 = min, -1 = current, int.MaxValue = max
+        var list = Enumerable.Range(0, maxThemeDifficulty + 1).OrderDescending().ToList();
+        list.Insert(0, -1);
+        list.Insert(1, int.MaxValue);
+        RoguelikeDifficultyList.Clear();
+        foreach (var i in list)
         {
-            RoguelikeDifficultyList =
-            [
-                new() { Display = "MAX", Value = int.MaxValue }
-            ];
-            for (int i = 20; i >= -1; --i)
+            int value = i;
+            var display = value switch
             {
-                RoguelikeDifficultyList.Add(new() { Display = i.ToString(), Value = i });
-            }
-        }
-
-        var sortedItems = RoguelikeDifficultyList
-            .Select(item => item)
-            .OrderBy(item => item.Value switch
-            {
-                -1 => 0,
-                int.MaxValue => 1,
-                _ when item.Value <= maxThemeDifficulty => 2 + (maxThemeDifficulty - item.Value),
-                _ => 2 + maxThemeDifficulty + 1 + (20 - item.Value),
-            })
-            .ToList();
-
-        for (int newIndex = 0; newIndex < sortedItems.Count; newIndex++)
-        {
-            int currentIndex = RoguelikeDifficultyList.IndexOf(sortedItems[newIndex]);
-            if (currentIndex != newIndex)
-            {
-                RoguelikeDifficultyList.Move(currentIndex, newIndex);
-            }
-
-            int value = RoguelikeDifficultyList[newIndex].Value;
-            RoguelikeDifficultyList[newIndex].Display = value switch
-            {
-                -1 => LocalizationHelper.GetString("Current"),
-                int.MaxValue => "MAX",
-                0 => "MIN",
-                _ => value > maxThemeDifficulty ? $"{value} (NONSUPPORT)" : value.ToString(),
+                -1 => LocalizationHelper.GetString("NotSwitch") + " (-1)",
+                int.MaxValue => $"MAX ({maxThemeDifficulty})",
+                0 => "MIN (0)",
+                _ => value.ToString(),
             };
+            RoguelikeDifficultyList.Add(new() { Display = display, Value = value });
         }
+
+        // 验证当前选中的难度是否在新列表中
+        RoguelikeDifficulty = RoguelikeDifficultyList.Any(item => item.Value == RoguelikeDifficulty) ? difficulty : -1;
     }
 
-    private static int GetMaxDifficultyForTheme(Theme theme)
+    private static int GetMaxDifficultyForTheme(Theme theme) => theme switch
     {
-        return theme switch
-        {
-            Theme.Phantom => 0,
-            Theme.Mizuki => 18,
-            Theme.Sami => 15,
-            Theme.Sarkaz => 18,
-            _ => 20,
-        };
-    }
+        Theme.Phantom => SettingsViewModel.GameSettings.ClientType is "" or "Official" or "Bilibili" ? 15 : 0,
+        Theme.Mizuki => 18,
+        Theme.Sami => 15,
+        Theme.Sarkaz => 18,
+        Theme.JieGarden => 15,
+        _ => 20,
+    };
 
     private void UpdateRoguelikeModeList()
     {
         var roguelikeMode = RoguelikeMode;
 
-        RoguelikeModeList =
-        [
-            new() { Display = LocalizationHelper.GetString("RoguelikeStrategyExp"), Value = 0 },
-            new() { Display = LocalizationHelper.GetString("RoguelikeStrategyGold"), Value = 1 },
-
-            // new CombData { Display = "两者兼顾，投资过后退出", Value = "2" } // 弃用
-            // new CombData { Display = Localization.GetString("3"), Value = "3" },  // 开发中
-            new() { Display = LocalizationHelper.GetString("RoguelikeStrategyLastReward"), Value = 4 },
-            new() { Display = LocalizationHelper.GetString("RoguelikeStrategyMonthlySquad"), Value = 6 },
-            new() { Display = LocalizationHelper.GetString("RoguelikeStrategyDeepExploration"), Value = 7 },
-        ];
-
         switch (RoguelikeTheme)
         {
-            case Theme.Sami:
-                RoguelikeModeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStrategyCollapse"), Value = 5 });
+            case Theme.JieGarden:
+                RoguelikeModeList = [
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyExp"), Value = Mode.Exp },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyGold"), Value = Mode.Investment },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyLastReward"), Value = Mode.Collectible },
+                ];
+                break;
+
+            default:
+                RoguelikeModeList =
+                [
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyExp"), Value = Mode.Exp },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyGold"), Value = Mode.Investment },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyLastReward"), Value = Mode.Collectible },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyMonthlySquad"), Value = Mode.Squad },
+                    new() { Display = LocalizationHelper.GetString("RoguelikeStrategyDeepExploration"), Value = Mode.Exploration },
+                ];
+
+                if (RoguelikeTheme == Theme.Sami)
+                {
+                    RoguelikeModeList.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStrategyCollapse"), Value = Mode.CLP_PDS });
+                }
 
                 break;
         }
 
-        RoguelikeMode = RoguelikeModeList.Any(x => x.Value == roguelikeMode) ? roguelikeMode : 0;
+        RoguelikeMode = RoguelikeModeList.Any(x => x.Value == roguelikeMode) ? roguelikeMode : RoguelikeModeList.First().Value;
+    }
+
+    private void UpdateRoguelikeRolesList()
+    {
+        var roguelikeRoles = RoguelikeRoles;
+        RoguelikeRolesList =
+        [
+            new() { Display = LocalizationHelper.GetString("FirstMoveAdvantage"), Value = "先手必胜" },
+            new() { Display = LocalizationHelper.GetString("SlowAndSteadyWinsTheRace"), Value = "稳扎稳打" },
+            new() { Display = LocalizationHelper.GetString("OvercomingYourWeaknesses"), Value = "取长补短" },
+        ];
+
+        switch (RoguelikeTheme)
+        {
+            case Theme.JieGarden:
+                RoguelikeRolesList.Add(new() { Display = LocalizationHelper.GetString("FlexibleDeployment"), Value = "灵活部署" });
+                RoguelikeRolesList.Add(new() { Display = LocalizationHelper.GetString("Unbreakable"), Value = "坚不可摧" });
+                break;
+        }
+
+        RoguelikeRolesList.Add(new() { Display = LocalizationHelper.GetString("AsYourHeartDesires"), Value = "随心所欲" });
+
+        RoguelikeRoles = RoguelikeRolesList.Any(x => x.Value == roguelikeRoles) ? roguelikeRoles : "稳扎稳打";
     }
 
     private readonly Dictionary<string, List<(string Key, string Value)>> _squadDictionary = new()
     {
         ["Phantom_Default"] =
         [
+            ("GatheringSquad", "集群分队"),
+            ("SpearheadSquad", "矛头分队"),
             ("ResearchSquad", "研究分队"),
         ],
         ["Mizuki_Default"] =
         [
+            ("GatheringSquad", "集群分队"),
+            ("SpearheadSquad", "矛头分队"),
             ("IS2NewSquad1", "心胜于物分队"),
             ("IS2NewSquad2", "物尽其用分队"),
             ("IS2NewSquad3", "以人为本分队"),
@@ -145,6 +177,8 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         ],
         ["Sami_Default"] =
         [
+            ("GatheringSquad", "集群分队"),
+            ("SpearheadSquad", "矛头分队"),
             ("IS3NewSquad1", "永恒狩猎分队"),
             ("IS3NewSquad2", "生活至上分队"),
             ("IS3NewSquad3", "科学主义分队"),
@@ -152,6 +186,8 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         ],
         ["Sarkaz_1"] =
         [
+            ("GatheringSquad", "集群分队"),
+            ("SpearheadSquad", "矛头分队"),
             ("IS4NewSquad2", "博闻广记分队"),
             ("IS4NewSquad3", "蓝图测绘分队"),
             ("IS4NewSquad6", "点刺成锭分队"),
@@ -159,6 +195,8 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         ],
         ["Sarkaz_Default"] =
         [
+            ("GatheringSquad", "集群分队"),
+            ("SpearheadSquad", "矛头分队"),
             ("IS4NewSquad1", "魂灵护送分队"),
             ("IS4NewSquad2", "博闻广记分队"),
             ("IS4NewSquad3", "蓝图测绘分队"),
@@ -168,15 +206,22 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
             ("IS4NewSquad7", "拟态学者分队"),
             ("IS4NewSquad8", "专业人士分队"),
         ],
+        ["JieGarden_Default"] =
+        [
+            ("SpecialForceSquad", "特勤分队"),
+            ("IS5NewSquad1", "高台突破分队"),
+            ("IS5NewSquad2", "地面突破分队"),
+            ("IS5NewSquad3", "游客分队"),
+            ("IS5NewSquad4", "司岁台分队"),
+            ("IS5NewSquad5", "天师府分队"),
+        ],
     };
 
     // 通用分队
     private readonly List<(string Key, string Value)> _commonSquads =
     [
         ("LeaderSquad", "指挥分队"),
-        ("GatheringSquad", "集群分队"),
         ("SupportSquad", "后勤分队"),
-        ("SpearheadSquad", "矛头分队"),
         ("TacticalAssaultOperative", "突击战术分队"),
         ("TacticalFortificationOperative", "堡垒战术分队"),
         ("TacticalRangedOperative", "远程战术分队"),
@@ -187,10 +232,7 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
     private void UpdateRoguelikeSquadList()
     {
         var roguelikeSquad = RoguelikeSquad;
-        RoguelikeSquadList =
-        [
-            new() { Display = LocalizationHelper.GetString("DefaultSquad"), Value = string.Empty }
-        ];
+        RoguelikeSquadList = [];
 
         // 优先匹配 Theme_Mode，其次匹配 Theme_Default
         string themeKey = $"{RoguelikeTheme}_{RoguelikeMode}";
@@ -215,7 +257,8 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         }
 
         // 选择当前分队
-        RoguelikeSquad = RoguelikeSquadList.Any(x => x.Value == roguelikeSquad) ? roguelikeSquad : string.Empty;
+        RoguelikeSquad = RoguelikeSquadList.Any(x => x.Value == roguelikeSquad) ? roguelikeSquad : "指挥分队";
+        RoguelikeCollectibleModeSquad = RoguelikeSquadList.Any(x => x.Value == RoguelikeCollectibleModeSquad) ? RoguelikeCollectibleModeSquad : RoguelikeSquad;
     }
 
     private void UpdateRoguelikeCoreCharList()
@@ -280,12 +323,12 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         set => SetAndNotify(ref _roguelikeDifficultyList, value);
     }
 
-    private ObservableCollection<GenericCombinedData<int>> _roguelikeModeList = [];
+    private ObservableCollection<GenericCombinedData<Mode>> _roguelikeModeList = [];
 
     /// <summary>
     /// Gets or sets the list of roguelike modes.
     /// </summary>
-    public ObservableCollection<GenericCombinedData<int>> RoguelikeModeList
+    public ObservableCollection<GenericCombinedData<Mode>> RoguelikeModeList
     {
         get => _roguelikeModeList;
         set => SetAndNotify(ref _roguelikeModeList, value);
@@ -302,31 +345,23 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         set => SetAndNotify(ref _roguelikeSquadList, value);
     }
 
+    private ObservableCollection<CombinedData> _roguelikeRolesList = [];
+
     /// <summary>
-    /// Gets the list of roguelike roles.
+    /// Gets or sets the list of roguelike roles.
     /// </summary>
-    public List<CombinedData> RoguelikeRolesList { get; } =
-        [
-            new() { Display = LocalizationHelper.GetString("DefaultRoles"), Value = string.Empty },
-            new() { Display = LocalizationHelper.GetString("FirstMoveAdvantage"), Value = "先手必胜" },
-            new() { Display = LocalizationHelper.GetString("SlowAndSteadyWinsTheRace"), Value = "稳扎稳打" },
-            new() { Display = LocalizationHelper.GetString("OvercomingYourWeaknesses"), Value = "取长补短" },
-            new() { Display = LocalizationHelper.GetString("AsYourHeartDesires"), Value = "随心所欲" },
-        ];
+    public ObservableCollection<CombinedData> RoguelikeRolesList
+    {
+        get => _roguelikeRolesList;
+        set => SetAndNotify(ref _roguelikeRolesList, value);
+    }
 
     /// <summary>
     /// Gets the list of roguelike lists.
     /// </summary>
-    public List<GenericCombinedData<Theme>> RoguelikeThemeList { get; } =
-        [
-            new() { Display = LocalizationHelper.GetString("RoguelikeThemePhantom"), Value = Theme.Phantom },
-            new() { Display = LocalizationHelper.GetString("RoguelikeThemeMizuki"), Value = Theme.Mizuki },
-            new() { Display = LocalizationHelper.GetString("RoguelikeThemeSami"), Value = Theme.Sami },
-            new() { Display = LocalizationHelper.GetString("RoguelikeThemeSarkaz"), Value = Theme.Sarkaz },
-        ];
+    public List<GenericCombinedData<Theme>> RoguelikeThemeList { get; } = [];
 
-    // public List<CombData> RoguelikeCoreCharList { get; set; }
-    private Theme _roguelikeTheme = Enum.TryParse(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeTheme, Theme.Sarkaz.ToString()), out Theme outTheme) ? outTheme : Theme.Sarkaz;
+    private Theme _roguelikeTheme = ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeTheme, Theme.JieGarden);
 
     /// <summary>
     /// Gets or sets the Roguelike theme.
@@ -338,14 +373,44 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         {
             SetAndNotify(ref _roguelikeTheme, value);
             ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeTheme, value.ToString());
-            UpdateRoguelikeDifficultyList();
+
+            // Check and adjust difficulty if current value is not supported by new theme
+            int maxDifficulty = GetMaxDifficultyForTheme(value);
+            if (RoguelikeDifficulty != -1 && RoguelikeDifficulty != int.MaxValue && RoguelikeDifficulty > maxDifficulty)
+            {
+                RoguelikeDifficulty = -1; // Set to "Current" if not supported
+            }
+
+            // 确保在更新列表之前先更新相关属性
             UpdateRoguelikeModeList();
+            UpdateRoguelikeDifficultyList();
+            UpdateRoguelikeRolesList();
             UpdateRoguelikeSquadList();
+            UpdateRoguelikeStartWithAllDict();
             UpdateRoguelikeCoreCharList();
+
+            // 强制刷新难度显示
+            OnPropertyChanged(nameof(RoguelikeDifficulty));
         }
     }
 
-    private int _roguelikeDifficulty = Convert.ToInt32(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeDifficulty, int.MaxValue.ToString()));
+    private int _roguelikeDifficulty = GetValidDifficulty();
+
+    /// <summary>
+    /// 获取有效的难度值，处理配置中的无效值
+    /// </summary>
+    private static int GetValidDifficulty()
+    {
+        string difficultyStr = ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeDifficulty, int.MaxValue.ToString());
+        if (string.IsNullOrEmpty(difficultyStr) || !int.TryParse(difficultyStr, out int difficulty))
+        {
+            // 如果配置值无效，返回默认值并保存
+            ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeDifficulty, int.MaxValue.ToString());
+            return int.MaxValue;
+        }
+
+        return difficulty;
+    }
 
     public int RoguelikeDifficulty
     {
@@ -357,23 +422,23 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         }
     }
 
-    private int _roguelikeMode = int.TryParse(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeMode, "0"), out var outMode) ? outMode : 0;
+    private Mode _roguelikeMode = ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeMode, Mode.Exp);
 
     /// <summary>
     /// Gets or sets 策略，往后打 / 刷一层就退 / 烧热水
     /// </summary>
-    public int RoguelikeMode
+    public Mode RoguelikeMode
     {
         get => _roguelikeMode;
         set
         {
-            if (value == 1)
+            if (value == Mode.Investment)
             {
                 RoguelikeInvestmentEnabled = true;
             }
 
             SetAndNotify(ref _roguelikeMode, value);
-            ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeMode, Convert.ToString(value));
+            ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeMode, value.ToString());
 
             UpdateRoguelikeSquadList();
         }
@@ -409,9 +474,11 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         }
     }
 
-    public bool RoguelikeSquadIsProfessional => RoguelikeMode == 4 && RoguelikeTheme != Theme.Phantom && RoguelikeSquad is "突击战术分队" or "堡垒战术分队" or "远程战术分队" or "破坏战术分队";
+    [PropertyDependsOn(nameof(RoguelikeMode), nameof(RoguelikeTheme), nameof(RoguelikeSquad))]
+    public bool RoguelikeSquadIsProfessional => RoguelikeMode == Mode.Collectible && RoguelikeTheme != Theme.Phantom && RoguelikeSquad is "突击战术分队" or "堡垒战术分队" or "远程战术分队" or "破坏战术分队";
 
-    public bool RoguelikeSquadIsFoldartal => RoguelikeMode == 4 && RoguelikeTheme == Theme.Sami && RoguelikeSquad == "生活至上分队";
+    [PropertyDependsOn(nameof(RoguelikeMode), nameof(RoguelikeTheme), nameof(RoguelikeSquad))]
+    public bool RoguelikeSquadIsFoldartal => RoguelikeMode == Mode.Collectible && RoguelikeTheme == Theme.Sami && RoguelikeSquad == "生活至上分队";
 
     private string _roguelikeRoles = ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeRoles, string.Empty);
 
@@ -514,37 +581,57 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
     /// </summary>
     public bool RoguelikeOnlyStartWithEliteTwo => _roguelikeOnlyStartWithEliteTwo && _roguelikeStartWithEliteTwo && RoguelikeSquadIsProfessional;
 
-    public static Dictionary<string, string> RoguelikeStartWithAllDict { get; } = new()
-    {
-        { "Roguelike@LastReward", LocalizationHelper.GetString("RoguelikeStartWithKettle") },
-        { "Roguelike@LastReward2", LocalizationHelper.GetString("RoguelikeStartWithShield") },
-        { "Roguelike@LastReward3", LocalizationHelper.GetString("RoguelikeStartWithIngot") },
-        { "Roguelike@LastReward4", LocalizationHelper.GetString("RoguelikeStartWithHope") },
-        { "Roguelike@LastRewardRand", LocalizationHelper.GetString("RoguelikeStartWithRandomReward") },
-        { "Mizuki@Roguelike@LastReward5", LocalizationHelper.GetString("RoguelikeStartWithKey") },
-        { "Mizuki@Roguelike@LastReward6", LocalizationHelper.GetString("RoguelikeStartWithDice") },
-        { "Sarkaz@Roguelike@LastReward5", LocalizationHelper.GetString("RoguelikeStartWithIdea") },
-    };
+    /// <summary>
+    /// Gets the available start with rewards dictionary based on current theme.
+    /// </summary>
+    public List<GenericCombinedData<string>> RoguelikeStartAwards { get; private set; } = [];
 
-    private object[] _roguelikeStartWithSelectListRaw = ConfigurationHelper.GetGlobalValue(ConfigurationKeys.RoguelikeStartWithSelectList, "Roguelike@LastReward Roguelike@LastReward4 Sarkaz@Roguelike@LastReward5")
-        .Split(' ')
-        .Where(s => RoguelikeStartWithAllDict.ContainsKey(s.ToString()))
-        .Select(s => (object)new KeyValuePair<string, string>(s, RoguelikeStartWithAllDict[s]))
-        .ToArray();
-
-    public object[] RoguelikeStartWithSelectListRaw
+    private void UpdateRoguelikeStartWithAllDict()
     {
-        get => _roguelikeStartWithSelectListRaw;
+        var config = ConfigurationHelper.GetGlobalValue(ConfigurationKeys.RoguelikeStartWithSelectList, "Roguelike@LastReward Roguelike@LastReward4").Split(' ');
+        var list = new List<GenericCombinedData<string>>()
+        {
+           new() { Display = LocalizationHelper.GetString("RoguelikeStartWithKettle"), Value = "Roguelike@LastReward" },
+           new() { Display = LocalizationHelper.GetString("RoguelikeStartWithShield"), Value = "Roguelike@LastReward2" },
+           new() { Display = LocalizationHelper.GetString("RoguelikeStartWithIngot"), Value = "Roguelike@LastReward3" },
+           new() { Display = LocalizationHelper.GetString("RoguelikeStartWithHope"), Value = "Roguelike@LastReward4" },
+           new() { Display = LocalizationHelper.GetString("RoguelikeStartWithRandomReward"), Value = "Roguelike@LastRewardRand" },
+        };
+
+        switch (RoguelikeTheme)
+        {
+            case Theme.Mizuki:
+                list.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStartWithKey"), Value = "Mizuki@Roguelike@LastReward5" });
+                list.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStartWithDice"), Value = "Mizuki@Roguelike@LastReward6" });
+                break;
+
+            case Theme.Sarkaz:
+                list.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStartWithIdea"), Value = "Sarkaz@Roguelike@LastReward5" });
+                break;
+
+            case Theme.JieGarden:
+                list.RemoveAll(i => i.Value == "Roguelike@LastReward4");
+                list.Add(new() { Display = LocalizationHelper.GetString("RoguelikeStartWithTicket"), Value = "JieGarden@Roguelike@LastReward5" });
+                break;
+        }
+
+        RoguelikeStartAwards = list;
+        OnPropertyChanged(nameof(RoguelikeStartAwards));
+        RoguelikeStartWithSelectList = RoguelikeStartAwards.Where(i => config.Contains(i.Value)).ToArray();
+    }
+
+    private object[] _roguelikeStartWithSelectList = [];
+
+    public object[] RoguelikeStartWithSelectList
+    {
+        get => _roguelikeStartWithSelectList;
         set
         {
-            SetAndNotify(ref _roguelikeStartWithSelectListRaw, value);
-            Instances.SettingsViewModel.UpdateWindowTitle();
-            var config = string.Join(' ', _roguelikeStartWithSelectListRaw.Cast<KeyValuePair<string, string>>().Select(pair => pair.Key).ToList());
+            SetAndNotify(ref _roguelikeStartWithSelectList, value);
+            var config = string.Join(' ', _roguelikeStartWithSelectList.Cast<GenericCombinedData<string>>().Select(i => i.Value).ToList());
             ConfigurationHelper.SetGlobalValue(ConfigurationKeys.RoguelikeStartWithSelectList, config);
         }
     }
-
-    public List<string> RoguelikeStartWithSelectList => _roguelikeStartWithSelectListRaw.Cast<KeyValuePair<string, string>>().Select(pair => pair.Key).ToList();
 
     private bool _roguelike3FirstFloorFoldartal = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.Roguelike3FirstFloorFoldartal, bool.FalseString));
 
@@ -702,7 +789,7 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
     /// <summary>
     /// Gets a value indicating whether investment is enabled.
     /// </summary>
-    public bool RoguelikeInvestmentWithMoreScore => _roguelikeInvestmentWithMoreScore && RoguelikeMode == 1;
+    public bool RoguelikeInvestmentWithMoreScore => _roguelikeInvestmentWithMoreScore && RoguelikeMode == Mode.Investment;
 
     private bool _roguelikeCollectibleModeShopping = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeCollectibleModeShopping, bool.FalseString));
 
@@ -846,6 +933,21 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         }
     }
 
+    private bool _roguelikeDelayAbortUntilCombatComplete = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeDelayAbortUntilCombatComplete, bool.FalseString));
+
+    /// <summary>
+    /// Gets or sets a value indicating whether delay abort until battle complete
+    /// </summary>
+    public bool RoguelikeDelayAbortUntilCombatComplete
+    {
+        get => _roguelikeDelayAbortUntilCombatComplete;
+        set
+        {
+            SetAndNotify(ref _roguelikeDelayAbortUntilCombatComplete, value);
+            ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeDelayAbortUntilCombatComplete, value.ToString());
+        }
+    }
+
     private bool _roguelikeStartWithSeed = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.RoguelikeStartWithSeed, bool.FalseString));
 
     /// <summary>
@@ -858,6 +960,146 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
         {
             SetAndNotify(ref _roguelikeStartWithSeed, value);
             ConfigurationHelper.SetValue(ConfigurationKeys.RoguelikeStartWithSeed, value.ToString());
+        }
+    }
+
+    public override void ProcSubTaskMsg(AsstMsg msg, JObject details)
+    {
+        if (msg != AsstMsg.SubTaskExtraInfo)
+        {
+            return;
+        }
+
+        var subTaskDetails = details["details"];
+        switch (details["what"]?.ToString() ?? string.Empty)
+        {
+            case "RoguelikeInvestmentReachFull":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("RoguelikeInvestmentReachFull"), UiLogColor.Info);
+                AchievementTrackerHelper.Instance.SetProgress(AchievementIds.RoguelikeGoldMax, 999);
+                break;
+
+            case "RoguelikeInvestmentReachLimit":
+                Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeInvestmentReachLimit"), subTaskDetails!["limit"]), UiLogColor.Info);
+                break;
+
+            case "RoguelikeInvestment":
+                Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeInvestment"), subTaskDetails!["count"], subTaskDetails["total"], subTaskDetails["deposit"]), UiLogColor.Info);
+                AchievementTrackerHelper.Instance.SetProgress(AchievementIds.RoguelikeGoldMax, (int)subTaskDetails["deposit"]!);
+                break;
+
+            // 肉鸽结算
+            case "RoguelikeSettlement":
+                {
+                    var report = subTaskDetails;
+                    var pass = (bool)report!["game_pass"]!;
+                    var difficulty = report["difficulty"]?.ToObject<int>() ?? -1;
+                    if (difficulty < 0 || difficulty > GetMaxDifficultyForTheme(RoguelikeTheme))
+                    {
+                        // 最后一位是 0 可能是识别错了，打个补丁
+                        if (difficulty % 10 == 0)
+                        {
+                            difficulty /= 10;
+                        }
+                        else
+                        {
+                            difficulty = -1;
+                        }
+                    }
+
+                    var roguelikeInfo = string.Format(
+                        LocalizationHelper.GetString("RoguelikeSettlement"),
+                        pass ? "✓" : "✗",
+                        report["floor"],
+                        report["step"],
+                        report["combat"],
+                        report["emergency"],
+                        report["boss"],
+                        report["recruit"],
+                        report["collection"],
+                        difficulty,
+                        report["score"],
+                        report["exp"],
+                        report["skill"]);
+
+                    if (pass)
+                    {
+                        if (difficulty >= 4)
+                        {
+                            AchievementTrackerHelper.Instance.Unlock(AchievementIds.RoguelikeN04);
+                        }
+
+                        if (difficulty >= 8)
+                        {
+                            AchievementTrackerHelper.Instance.Unlock(AchievementIds.RoguelikeN08);
+                        }
+
+                        if (difficulty >= 12)
+                        {
+                            AchievementTrackerHelper.Instance.Unlock(AchievementIds.RoguelikeN12);
+                        }
+
+                        if (difficulty >= 15)
+                        {
+                            AchievementTrackerHelper.Instance.Unlock(AchievementIds.RoguelikeN15);
+                        }
+                    }
+
+                    Instances.TaskQueueViewModel.AddLog(roguelikeInfo, UiLogColor.Message);
+                    break;
+                }
+
+            case "RoguelikeCombatEnd":
+                // 肉鸽战斗结束，无论成功与否
+                Instances.TaskQueueViewModel.RoguelikeInCombatAndShowWait = false;
+                break;
+
+            case "RoguelikeEvent":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("RoguelikeEvent") + $" {subTaskDetails!["name"]}", UiLogColor.EventIS);
+                break;
+
+            case "EncounterOcrError":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("EncounterOcrError"), UiLogColor.Error);
+                break;
+
+            case "FoldartalGainOcrNextLevel":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("FoldartalGainOcrNextLevel") + $" {subTaskDetails!["foldartal"]}");
+                break;
+
+            case "MonthlySquadCompleted":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("MonthlySquadCompleted"), UiLogColor.RareOperator);
+                break;
+
+            case "DeepExplorationCompleted":
+                Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("DeepExplorationCompleted"), UiLogColor.RareOperator);
+                break;
+
+            case "RoguelikeCollapsalParadigms":
+                string deepen_or_weaken_str = subTaskDetails!["deepen_or_weaken"]?.ToString() ?? "Unknown";
+                if (!int.TryParse(deepen_or_weaken_str, out int deepen_or_weaken))
+                {
+                    break;
+                }
+
+                string cur = subTaskDetails["cur"]?.ToString() ?? "UnKnown";
+                string prev = subTaskDetails["prev"]?.ToString() ?? "UnKnown";
+                if (deepen_or_weaken == 1 && prev == string.Empty)
+                {
+                    Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeGainParadigm"), cur), UiLogColor.Info);
+                }
+                else if (deepen_or_weaken == 1 && prev != string.Empty)
+                {
+                    Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeDeepenParadigm"), cur, prev), UiLogColor.Info);
+                }
+                else if (deepen_or_weaken == -1 && cur == string.Empty)
+                {
+                    Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeLoseParadigm"), string.Empty, prev), UiLogColor.Info);
+                }
+                else if (deepen_or_weaken == -1 && cur != string.Empty)
+                {
+                    Instances.TaskQueueViewModel.AddLog(string.Format(LocalizationHelper.GetString("RoguelikeWeakenParadigm"), cur, prev), UiLogColor.Info);
+                }
+
+                break;
         }
     }
 
@@ -877,7 +1119,7 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
 
             InvestmentEnabled = RoguelikeInvestmentEnabled,
             InvestmentCount = RoguelikeInvestsCount,
-            InvestmentStopWhenFull = RoguelikeStopWhenInvestmentFull,
+            InvestmentStopWhenFull = RoguelikeStopWhenInvestmentFull && RoguelikeMode != Mode.Collectible,
             InvestmentWithMoreScore = RoguelikeInvestmentWithMoreScore,
             RefreshTraderWithDice = RoguelikeTheme == Theme.Mizuki && RoguelikeRefreshTraderWithDice,
 
@@ -887,8 +1129,8 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
             // 刷开局
             CollectibleModeSquad = RoguelikeCollectibleModeSquad,
             CollectibleModeShopping = RoguelikeCollectibleModeShopping,
-            StartWithEliteTwo = RoguelikeStartWithEliteTwo && RoguelikeSquadIsProfessional,
-            StartWithEliteTwoNonBattle = RoguelikeOnlyStartWithEliteTwo,
+            StartWithEliteTwo = RoguelikeStartWithEliteTwo && RoguelikeSquadIsProfessional && RoguelikeTheme is Theme.Mizuki or Theme.Sami,
+            StartWithEliteTwoNonBattle = RoguelikeOnlyStartWithEliteTwo && RoguelikeTheme is Theme.Mizuki or Theme.Sami,
 
             // 月度小队
             MonthlySquadAutoIterate = RoguelikeMonthlySquadAutoIterate,
@@ -897,16 +1139,16 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
             // 深入探索
             DeepExplorationAutoIterate = RoguelikeDeepExplorationAutoIterate,
 
-            SamiFirstFloorFoldartal = RoguelikeTheme == Theme.Sami && RoguelikeMode == 4 && Roguelike3FirstFloorFoldartal,
+            SamiFirstFloorFoldartal = RoguelikeTheme == Theme.Sami && RoguelikeMode == Mode.Collectible && Roguelike3FirstFloorFoldartal,
             SamiStartFloorFoldartal = Roguelike3FirstFloorFoldartals,
             SamiNewSquad2StartingFoldartal = Roguelike3NewSquad2StartingFoldartal && RoguelikeSquadIsFoldartal,
             SamiNewSquad2StartingFoldartals = Roguelike3NewSquad2StartingFoldartals.Split(';').Where(i => !string.IsNullOrEmpty(i)).Take(3).ToList(),
 
             ExpectedCollapsalParadigms = RoguelikeExpectedCollapsalParadigms.Split(';').Where(i => !string.IsNullOrEmpty(i)).ToList(),
-            StartWithSeed = RoguelikeStartWithSeed && RoguelikeTheme == Theme.Sarkaz && RoguelikeMode == 1 && RoguelikeSquad is "点刺成锭分队" or "后勤分队",
+            StartWithSeed = RoguelikeStartWithSeed && RoguelikeTheme == Theme.Sarkaz && RoguelikeMode == Mode.Investment && RoguelikeSquad is "点刺成锭分队" or "后勤分队",
         };
 
-        if (RoguelikeMode == 4 && !RoguelikeOnlyStartWithEliteTwo)
+        if (RoguelikeMode == Mode.Collectible && !RoguelikeOnlyStartWithEliteTwo)
         {
             var rewardKeys = new Dictionary<string, string>
             {
@@ -918,9 +1160,11 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
                 { "Mizuki@Roguelike@LastReward5", "key" },
                 { "Mizuki@Roguelike@LastReward6", "dice" },
                 { "Sarkaz@Roguelike@LastReward5", "ideas" },
+                { "JieGarden@Roguelike@LastReward5", "ticket" },
             };
+
             var startWithSelect = new JObject();
-            foreach (var select in RoguelikeStartWithSelectList)
+            foreach (var select in _roguelikeStartWithSelectList.Cast<GenericCombinedData<string>>().Select(i => i.Value).ToList())
             {
                 if (rewardKeys.TryGetValue(select, out var paramKey))
                 {
@@ -931,27 +1175,4 @@ public class RoguelikeSettingsUserControlModel : TaskViewModel
 
         return task.Serialize();
     }
-}
-
-public enum RoguelikeTheme
-{
-    /// <summary>
-    /// 傀影
-    /// </summary>
-    Phantom,
-
-    /// <summary>
-    /// 水月
-    /// </summary>
-    Mizuki,
-
-    /// <summary>
-    /// 萨米
-    /// </summary>
-    Sami,
-
-    /// <summary>
-    /// 萨卡兹
-    /// </summary>
-    Sarkaz,
 }

@@ -1,6 +1,6 @@
 // <copyright file="MaaUrls.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -26,6 +26,8 @@ namespace MaaWpfGui.Constants
 
         public const string GitHub = "https://github.com/MaaAssistantArknights/MaaAssistantArknights";
 
+        public const string ResourceRepository = "https://github.com/MaaAssistantArknights/MaaResource";
+
         public const string GitHubIssues = "https://github.com/MaaAssistantArknights/MaaAssistantArknights/issues";
 
         public const string Telegram = "https://t.me/+Mgc2Zngr-hs3ZjU1";
@@ -42,19 +44,16 @@ namespace MaaWpfGui.Constants
 
         public const string MapPrts = "https://map.ark-nights.com/areas?coord_override=maa";
 
-        public const string MaaApi = "https://ota.maa.plus/MaaAssistantArknights/api/";
+        public const string MaaApi = "https://api.maa.plus/MaaAssistantArknights/api/";
+        public const string MaaApi2 = "https://api2.maa.plus/MaaAssistantArknights/api/";
 
-        public const string MaaResourceApi = "https://ota.maa.plus/MaaAssistantArknights/MaaAssistantArknights/";
-        public const string AnnMirrorResourceApi = "https://maa-ota.annangela.cn/MaaAssistantArknights/MaaAssistantArknights/";
-        public const string S3ResourceApi = "https://s3.maa-org.net:25240/maaassistantarknights/MaaAssistantArknights/MaaAssistantArknights/";
-        public const string R2ResourceApi = "https://maa.r2.imgg.dev/MaaAssistantArknights/MaaAssistantArknights/";
-
-        public const string QqGroups = "https://ota.maa.plus/MaaAssistantArknights/api/qqgroup/index.html";
+        public const string QqGroups = "https://api.maa.plus/MaaAssistantArknights/api/qqgroup/index.html";
 
         public const string QqChannel = "https://pd.qq.com/s/4j1ju9z47";
 
         public const string GoogleAdbDownloadUrl = "https://dl.google.com/android/repository/platform-tools-latest-windows.zip";
-        public const string AdbMaaMirrorDownloadUrl = "https://ota.maa.plus/MaaAssistantArknights/api/binaries/adb-windows.zip";
+        public const string AdbMaaMirrorDownloadUrl = "https://api.maa.plus/MaaAssistantArknights/api/binaries/adb-windows.zip";
+        public const string AdbMaaMirror2DownloadUrl = "https://api2.maa.plus/MaaAssistantArknights/api/binaries/adb-windows.zip";
         public const string GoogleAdbFilename = "adb-windows.zip";
 
         private static string Language => ConfigurationHelper.GetGlobalValue(ConfigurationKeys.Localization, LocalizationHelper.DefaultLanguage);
@@ -86,9 +85,19 @@ namespace MaaWpfGui.Constants
         // 资源更新更新源
         public const string GithubResourceUpdate = "https://github.com/MaaAssistantArknights/MaaResource/archive/refs/heads/main.zip";
 
-        public const string MirrorChyanWebsite = "https://mirrorchyan.com";
-        public const string MirrorChyanLine1 = "https://mirrorchyan.com";
-        public const string MirrorChyanAppUpdate = $"{MirrorChyanLine1}/api/resources/MAA/latest";
-        public const string MirrorChyanResourceUpdate = $"{MirrorChyanLine1}/api/resources/MaaResource/latest";
+        // MirrorChyan
+        public const string MirrorChyanDomain = "https://mirrorchyan.com";
+        public const string MirrorChyanWebsite = $"{MirrorChyanDomain}?source=maawpfgui-settings";
+        public const string MirrorChyanAppUpdate = $"{MirrorChyanDomain}/api/resources/MAA/latest";
+        public const string MirrorChyanResourceUpdate = $"{MirrorChyanDomain}/api/resources/MaaResource/latest";
+        public const string MirrorChyanManualUpdate = $"{MirrorChyanDomain}/zh/projects?rid=MAA&source=maawpfgui-manualupdate";
+
+        // 企鹅物流
+        public const string PenguinIoDomain = "https://penguin-stats.io";
+        public static readonly string[] PenguinBackupDomains =
+        [
+            /*"https://penguin-stats.alvorna.com",*/
+            "https://penguin-stats.cn"
+        ];
     }
 }

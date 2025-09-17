@@ -1,6 +1,6 @@
 // <copyright file="AnnouncementViewModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using HandyControl.Controls;
 using HandyControl.Tools.Command;
-using MaaWpfGui.Configuration;
+using MaaWpfGui.Configuration.Factory;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using Serilog;
@@ -71,7 +71,7 @@ namespace MaaWpfGui.ViewModels.UI
 
                 scrollViewer.ScrollToTop();
             });
-            AnnouncementSections = new(ParseAnnouncementInfo(AnnouncementInfo));
+            AnnouncementSections = [.. ParseAnnouncementInfo(AnnouncementInfo)];
         }
 
         private void UpdateImageSource()
@@ -102,7 +102,7 @@ namespace MaaWpfGui.ViewModels.UI
                 Content = markdown,
             });
 
-            return new(sections);
+            return [.. sections];
         }
 
         public ICommand UpdateScrollStateCommand { get; }
@@ -139,8 +139,8 @@ namespace MaaWpfGui.ViewModels.UI
 
         private static readonly string _announcementInFile = SettingsViewModel.GuiSettings.Language switch
         {
-            "zh-cn" or "zh-tw" => Path.Combine(Environment.CurrentDirectory, "cache", "announcement.md"),
-            _ => Path.Combine(Environment.CurrentDirectory, "cache", "announcement_en.md"),
+            "zh-cn" or "zh-tw" => Path.Combine(PathsHelper.CacheDir, "announcement.md"),
+            _ => Path.Combine(PathsHelper.CacheDir, "announcement_en.md"),
         };
 
         private static string AnnouncementInFile
@@ -196,7 +196,7 @@ namespace MaaWpfGui.ViewModels.UI
             {
                 SetAndNotify(ref _announcementInfo, value);
                 AnnouncementInFile = value;
-                AnnouncementSections = new(ParseAnnouncementInfo(AnnouncementInfo));
+                AnnouncementSections = [.. ParseAnnouncementInfo(AnnouncementInfo)];
             }
         }
 
@@ -251,13 +251,23 @@ namespace MaaWpfGui.ViewModels.UI
             }
 
             var body = await HttpResponseHelper.GetStringAsync(response);
-            if (!string.IsNullOrEmpty(body))
+            if (!string.IsNullOrEmpty(body) && AnnouncementInfo != body)
             {
+                const string Template =
+                    "----------- OLD -----------\n" +
+                    "{AnnouncementInfo}\n" +
+                    "---------------------------\n\n" +
+                    "=========== NEW ===========\n" +
+                    "{Body}\n" +
+                    "===========================";
+                _logger.Information(Template,
+                    AnnouncementInfo,
+                    body);
                 AnnouncementInfo = body;
                 DoNotRemindThisAnnouncementAgain = false;
             }
 
-            ETagCache.Set(response);
+            ETagCache.Set(response, url);
             ETagCache.Save();
         }
 

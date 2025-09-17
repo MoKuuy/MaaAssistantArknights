@@ -1,8 +1,8 @@
 #include "Assistant.h"
 
 #include "Utils/NoWarningCV.h"
-#include "Utils/Ranges.hpp"
 #include <meojson/json.hpp>
+#include <ranges>
 
 #include "Config/GeneralConfig.h"
 #include "Config/Miscellaneous/OcrPack.h"
@@ -307,6 +307,22 @@ std::vector<uchar> asst::Assistant::get_image() const
     return buf;
 }
 
+std::vector<uchar> asst::Assistant::get_image_bgr() const
+{
+    if (!inited()) {
+        return {};
+    }
+
+    cv::Mat img = m_ctrler->get_image_cache();
+
+    if (!img.isContinuous()) {
+        img = img.clone();
+    }
+
+    std::vector<uchar> buf(img.data, img.data + img.total() * img.elemSize());
+    return buf;
+}
+
 bool asst::Assistant::connect(const std::string& adb_path, const std::string& address, const std::string& config)
 {
     LogTraceFunction;
@@ -356,7 +372,7 @@ std::vector<Assistant::TaskId> asst::Assistant::get_tasks_list() const
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     std::vector<TaskId> result(m_tasks_list.size());
-    ranges::copy(m_tasks_list | views::keys, result.begin());
+    std::ranges::copy(m_tasks_list | std::views::keys, result.begin());
     return result;
 }
 

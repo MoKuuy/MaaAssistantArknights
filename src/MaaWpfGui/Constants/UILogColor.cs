@@ -1,6 +1,6 @@
 // <copyright file="UILogColor.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,6 +11,8 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
+using JetBrains.Annotations;
+
 namespace MaaWpfGui.Constants
 {
     /// <summary>
@@ -18,6 +20,13 @@ namespace MaaWpfGui.Constants
     /// </summary>
     public static class UiLogColor
     {
+        public const string Text = "PrimaryTextBrush";
+
+        /// <summary>
+        /// The recommended color for success logs.
+        /// </summary>
+        public const string Success = "SuccessLogBrush";
+
         /// <summary>
         /// The recommended color for error logs.
         /// </summary>
@@ -51,8 +60,72 @@ namespace MaaWpfGui.Constants
         /// <summary>
         /// The recommended color for robot operator logs.
         /// </summary>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public const string RobotOperator = "RobotOperatorLogBrush";
+
+        #region 公招
+
+        /// <summary>
+        /// The recommended color for 1-star operators (also used for robot operators).
+        /// </summary>
+        public const string Star1Operator = "Star1OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 1-star operators when potential is full.
+        /// </summary>
+        public const string Star1OperatorPotentialFull = "Star1OperatorLogBrushPotentialFull";
+
+        /// <summary>
+        /// The recommended color for 2-star operators.
+        /// </summary>
+        public const string Star2Operator = "Star2OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 2-star operators when potential is full.
+        /// </summary>
+        public const string Star2OperatorPotentialFull = "Star2OperatorLogBrushPotentialFull";
+
+        /// <summary>
+        /// The recommended color for 3-star operators.
+        /// </summary>
+        public const string Star3Operator = "Star3OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 3-star operators when potential is full.
+        /// </summary>
+        public const string Star3OperatorPotentialFull = "Star3OperatorLogBrushPotentialFull";
+
+        /// <summary>
+        /// The recommended color for 4-star operators.
+        /// </summary>
+        public const string Star4Operator = "Star4OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 4-star operators when potential is full.
+        /// </summary>
+        public const string Star4OperatorPotentialFull = "Star4OperatorLogBrushPotentialFull";
+
+        /// <summary>
+        /// The recommended color for 5-star operators.
+        /// </summary>
+        public const string Star5Operator = "Star5OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 5-star operators when potential is full.
+        /// </summary>
+        public const string Star5OperatorPotentialFull = "Star5OperatorLogBrushPotentialFull";
+
+        /// <summary>
+        /// The recommended color for 6-star operators.
+        /// </summary>
+        public const string Star6Operator = "Star6OperatorLogBrush";
+
+        /// <summary>
+        /// The recommended color for 6-star operators when potential is full.
+        /// </summary>
+        public const string Star6OperatorPotentialFull = "Star6OperatorLogBrushPotentialFull";
+
+        #endregion
 
         /// <summary>
         /// The recommended color for file downloading or downloaded or download failed.
@@ -110,6 +183,11 @@ namespace MaaWpfGui.Constants
         /// The recommended color for boss fights.
         /// </summary>
         public const string BossIS = "BossIS";
+
+        /// <summary>
+        /// The recommended color for abandoned.
+        /// </summary>
+        public const string ExplorationAbandonedIS = "ExplorationAbandonedIS";
 
         // 颜色在MaaWpfGui\Res\Themes中定义
         // Brush are defined in MaaWpfGui\Res\Themes

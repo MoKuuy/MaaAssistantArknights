@@ -1,7 +1,4 @@
 {
-    "StageTheme": {
-        "roi": [200, 640, 300, 60]
-    },
     "ClickChapter1": {
         "text": ["Hour of An Awakening", "Hour of An"]
     },
@@ -11,6 +8,20 @@
     "ClickChapter3": {
         "text": ["Shadow of A Dying Sun", "Shadow of A"]
     },
+    "ClickChapterNew": {
+        "text": ["Movements"]
+    },
+    "ClickChapterNewOpenTime": {
+        "text": ["Unlock Time"]
+    },
+    "ClickChapterNewDefaultProgress": {
+        "roi": [747, 27, 58, 26],
+        "text": ["Default"]
+    },
+    "ClickChapterNewOverview": {
+        "roi": [1163, 27, 84, 28],
+        "text": ["Movements"]
+    },
     "LevelOfDifficulty": {
         "text": ["Environment", "PRTS"]
     },
@@ -19,13 +30,6 @@
     },
     "EnterChapterDifficultyNormal": {
         "text": ["Start Operation"]
-    },
-    "SideStoryReopen": {
-        "text": ["Rerun", "Retrospection"],
-        "roi": [0, 500, 500, 150]
-    },
-    "StageResource": {
-        "roi": [600, 600, 250, 110]
     },
     "CharsNameOcrReplace": {
         "Doc": "该任务的 ocrReplace 被所有涉及干员名的英文识别任务复用 This task's ocrReplace is reused by all recognition tasks related to operator names",
@@ -37,7 +41,7 @@
             ["^Ch'en$", "陈"],
             ["^Thorns$", "棘刺"],
             ["^Specter$", "幽灵鲨"],
-            ["Nearl? the Radiant Kn?ight", "耀骑士临光"],
+            ["Nearl? the Rad?iant Kn?ight", "耀骑士临光"],
             ["^Lappland$", "拉普兰德"],
             ["Indra", "因陀罗"],
             ["Amiya", "阿米娅"],
@@ -212,7 +216,7 @@
             ["Leonhardt", "莱恩哈特"],
             ["Absinthe", "苦艾"],
             ["Ceobe", "刻俄柏"],
-            ["Leizi?", "惊蛰"],
+            ["^Leizi?$", "惊蛰"],
             ["Mostima", "莫斯提马"],
             ["^Greyy$", "格雷伊"],
             ["Nightmare", "夜魔"],
@@ -280,7 +284,6 @@
             ["Phantom in the Mirror", "镜中虚影"],
             ["Static Roadblock", "道路障碍物"],
             ["Tentacle", "触手"],
-            ["'Clip'", "\"夹子\""],
             ["Metal Crab Guard Team", "磐蟹护卫队"],
             ["Gas Tank P.", "便携气罐"],
             ["Mieszko Coil", "梅什科线圈"],
@@ -777,13 +780,139 @@
             ["Golden Echo", "黄金回响"],
             ["Aggini of Nila", "尼卢火"],
             ["Lappland the Decadenza", "荒芜拉普兰德"],
-            ["CrownSlayer", "弑君者"],
+            ["Crownslayer", "弑君者"],
             ["Contrail", "云迹"],
             ["Vulpisfoglia", "忍冬"],
             ["Philae", "菲莱"],
             ["Figurino", "裁度"],
-            ["Firework Launcher", "烟花发射器"]
+            ["Firework Launcher", "烟花发射器"],
+            ["Karlan Trade Model", "喀兰贸易模型"],
+            ["Doctor Hologram", "博士投影"],
+            ["Arts Blood Tax", "法术：血税"],
+            ["Promotion Permit", "预备进阶许可"],
+            ["Dirk", "短剑"],
+            ["Orirock Dagger", "源岩匕首"],
+            ["Hardtack", "压缩饼干"],
+            ["Arts All-Out", "法术：全力"],
+            ["Strong Tea", "浓茶"],
+            ["Advanced Deployment Permit", "晋升调配特许"],
+            ["Standard Caster Wand", "制式术师杖"],
+            ["Stun Grenade", "震撼弹"],
+            ["Buzzer", "蜂鸣器"],
+            ["Elite Sniper Set", "精英狙击套组"],
+            ["Coin-Operated Machine", "竞技投币机"],
+            ["Arts Familiar Face", "法术：熟人"],
+            ["Standard Defender Shield", "制式重装盾"],
+            ["Reserve Operator *-* *Supporter", "预备干员-辅助"],
+            ["Caster Drone", "术师无人机"],
+            ["Lucky Coin", "幸运币"],
+            ["Miniature Accelerator", "有限加速器"],
+            ["Reserve Operator *-* *Vanguard", "预备干员-先锋"],
+            ["Reserve Operator *-* *Guard", "预备干员-近卫"],
+            ["Reserve Operator *-* *Medic", "预备干员-医疗"],
+            ["Reserve Operator *-* *Specialist", "预备干员-特种"],
+            ["Engineer's Hammer", "工匠锤"],
+            ["Pocket Arts Circle", "口袋法阵"],
+            ["Small Shield", "小盾"],
+            ["Supply Distributor", "补给调配器"],
+            ["Goliath Helmet", "歌利亚头盔"],
+            ["Elite Caster Set", "精英术师套组"],
+            ["Chunk of Ice", "冰块"],
+            ["Kazimierz Model", "卡西米尔模型"],
+            ["Transmitter", "信标"],
+            ["Originium Solvent", "源石溶剂"],
+            ["Laser Sighter", "激光发射器"],
+            ["Karlan Trade File", "喀兰贸易文档"],
+            ["Kazimierz File", "卡西米尔文档"],
+            ["Abyssal Hunter File", "深海猎人文档"],
+            ["Budget-Savvy Doll", "精打细算玩偶"],
+            ["Money-Grubbing Doll", "见钱眼开玩偶"],
+            ["Battlefield Analyzer", "战场分析仪"],
+            ["Standard Sniper Scope", "制式狙击镜"],
+            ["Dormant Heir", "休眠子裔"],
+            ["Abyssal Hunter Model", "深海猎人模型"],
+            ["Elite Defender Set", "精英重装套组"],
+            ["M3 Armor", "M3护甲"],
+            ["M3 Claw", "M3利爪"],
+            ["Portable Launcher", "便携弹射器"],
+            ["Multi-Purpose Robotic Arm", "全能机械臂"],
+            ["Arts Recovery", "法术：恢复"],
+            ["Arts Strength", "法术：力量"],
+            ["Arts Transmission", "法术：传动"],
+            ["Arts Greed", "法术：贪婪"],
+            ["Arts Satisfaction", "法术：满足"],
+            ["Arts Shield", "法术：护盾"],
+            ["Arts Role Model", "法术：榜样"],
+            ["Arts Barrier", "法术：屏障"],
+            ["Arts Peer", "法术：同行"],
+            ["Arts Boost", "法术：提升"],
+            ["Arts Slow", "法术：迟缓"],
+            ["Arts Infiltration", "法术：破袭"],
+            ["Barge Captain", "驳船操作员"],
+            ["Supply Retainer", "补给留存器"],
+            ["Enemy Entrance", "敌人入口"],
+            ["Supply Barge", "补给驳船"],
+            ["Thorns the Lodestar", "引星棘刺"],
+            ["Saltheap Cannon", "盐坨子炮"],
+            ["Puppet Dancer", "木偶舞者"],
+            ["Hook", "勾爪"],
+            ["Amphibious Dock", "两栖码头"],
+            ["Power Gauntlet", "大力拳套"],
+            ["Tecno", "特克诺"],
+            ["Rose Salt", "瑰盐"],
+            ["Quenchy Cola", "口渴乐乐"],
+            ["Street Telephone Booth", "街边电话亭"],
+            ["Gacha Machine", "扭蛋机"],
+            ["Timey-Wimey Telephone Booth", "超时空电话亭"],
+            ["Camp Telephone Booth", "军营电话亭"],
+            ["Menu Telephone", "菜单电话机"],
+            ["Scoring Station", "大战记分站"],
+            ["Gramophone Pedestal", "“留声机”底座"],
+            ["Blaze the Igniting Spark", "烛煌"],
+            ["Yu", "余"],
+            ["Surfer", "寻澜"],
+            ["Xingzhu", "行箸"],
+            ["Stove", "火灶"],
+            ["Derelict Stove", "废弃火灶"],
+            ["Entelechia", "隐德来希"],
+            ["Nowell", "诺威尔"],
+            ["Ore 'Killer'", "矿石“杀手”"],
+            ["Brigid", "水灯心"],
+            ["Empty Shell", "空壳"],
+            ["Wulfenite", "钼铅"],
+            ["Servant of Lamentation", "悲叹的仆役"],
+            ["Necrass", "死芒"],
+            ["Fires of Days Past", "旧日之火"],
+            ["Thicket", "树丛"],
+            ["Shield and Wall", "盾与墙"],
+            ["Hydraulic Platform", "液压式高台 "],
+            ["Protective Gear Giver", "护具分发员"],
+            ["Recuperation Pod", "临时休息舱"],
+            ["Beastmode Energy Drink", "猛兽能量饮料"],
+            ["Collapsed Junk Pile", "坍塌的杂物堆"],
+            ["Chaotic Fireworks", "混乱烟花箱"],
+            ["Soda Dispenser", "喷射汽水机"],
+            ["Cheerleader", "赛场啦啦队"],
+            ["Expert Facility Builder", "高级设施建筑工"],
+            ["Construction Workshop", "建筑工具间"],
+            ["Concrete Roadblock", "混凝土路障 "],
+            ["Portable Exercise Rack", "便携健身架"],
+            ["Stable Sarkaz Caster Crystal", "稳定态萨卡兹术师结晶"],
+            ["'Frozen Monstrosity's Echo'", "“寒灾回响”"],
+            ["Theresis", "特雷西斯"],
+            ["Weakening Node", "弱化节点"],
+            ["Reconstruction", "重构体"],
+            ["Windscoot", "骋风"],
+            ["Nutty", "小螺帽"],
+            ["Alanna", "阿兰娜"],
+            ["Active Sarkaz Caster Crystal", "活性态萨卡兹术师结晶"],
+            ["'Shadow in the Snow'", "“风雪中的影子”"],
+            ["Hot Drink Machine", "加热饮料机"],
+            ["Cold Drink Machine", "冰镇饮料机"]
         ]
+    },
+    "GameStartCheckResourceOCR": {
+        "text": ["Checking", "resource", "integrity", "data"]
     },
     "GameStartUpdateOCR": {
         "text": ["Releasing", "neurotransmitter"]
@@ -800,6 +929,18 @@
     "LoadingText": {
         "text": ["Submitting feedback", "to the neural network"],
         "roi": [675, 605, 427, 115]
+    },
+    "Chernobog@AnnihilationStage": {
+        "text": ["Chernobog"]
+    },
+    "LungmenOutskirts@AnnihilationStage": {
+        "text": ["Lungmen Outskirts"]
+    },
+    "LungmenDowntown@AnnihilationStage": {
+        "text": ["Lungmen Downtown"]
+    },
+    "AnnihilationSwitchButton": {
+        "text": ["Switch"]
     },
     "UsePrts": {
         "templThreshold": 0.7
@@ -915,7 +1056,7 @@
     },
     "InfrastReward": {
         "fullMatch": true,
-        "text": ["Collectable", "Orders", "Acquired", "Trust"]
+        "text": ["Collectable", "Orders Acquired", "Trust"]
     },
     "ShamareThumbnail1": {
         "maskRange": [1, 255]
@@ -925,36 +1066,6 @@
     },
     "ShamareThumbnail3": {
         "maskRange": [1, 255]
-    },
-    "InfrastDormMini": {
-        "roi": [620, 240, 360, 480]
-    },
-    "InfrastOffice": {
-        "roi": [880, 330, 400, 160]
-    },
-    "InfrastOfficeMini": {
-        "roi": [980, 320, 300, 160]
-    },
-    "InfrastProcessing": {
-        "roi": [880, 200, 400, 200]
-    },
-    "InfrastProcessingMini": {
-        "roi": [980, 240, 300, 160]
-    },
-    "InfrastReception": {
-        "roi": [880, 120, 400, 160]
-    },
-    "InfrastReceptionMini": {
-        "roi": [980, 180, 300, 140]
-    },
-    "InfrastTraining": {
-        "roi": [880, 420, 400, 160]
-    },
-    "InfrastTrainingMini": {
-        "roi": [980, 400, 300, 140]
-    },
-    "InfrastControlMini": {
-        "roi": [620, 80, 360, 230]
     },
     "InfrastStationedInfo": {
         "text": ["Operator", "Operato"]
@@ -983,27 +1094,29 @@
     },
     "InfrastTrainingIdle": {
         "text": ["Idle", "ldle"],
-        "roi": [408, 636, 108, 58]
+        "roi": [326, 637, 165, 41]
+    },
+    "InfrastTrainingProcessing": {
+        "text": ["Progress"]
     },
     "InfrastTrainingCompleted": {
         "roi": [408, 636, 108, 58],
         "text": ["Done"]
     },
     "InfrastTrainingOperatorAndSkill": {
-        "roi": [152, 621, 341, 29]
+        "text": [],
+        "roi": [152, 601, 341, 54],
+        "ocrReplace": [
+            ["^\\[", ""],
+            ["\\]", "\n"],
+            ["(·|;)+", ""],
+            [" [Aa]$", " α"],
+            [" [Bb]$", " β"],
+            [" [Yy]$", " γ"]
+        ]
     },
-    "InfrastTrainingTimeRec0": {
-        "baseTask": "NumberOcrReplace",
-        "Doc": "HH",
-        "roi": [156, 651, 31, 25]
-    },
-    "InfrastTrainingTimeRec1": {
-        "Doc": "MM",
-        "roi": [188, 651, 30, 25]
-    },
-    "InfrastTrainingTimeRec2": {
-        "Doc": "SS",
-        "roi": [219, 651, 31, 25]
+    "InfrastTrainingTime": {
+        "roi": [155, 655, 95, 25]
     },
     "BattleStageName": {
         "Doc": "该任务的 ocrReplace 被所有涉及Rouge-like的English识别任务复用",
@@ -1234,7 +1347,7 @@
             ["Timeworn Tensions", "假想对冲"],
             ["Witch-Curse Alliance", "巫咒同盟"],
             ["Guiltless Paradise", "无罪净土"],
-            ["Arial Assault", "浮空城接舷战"],
+            ["Aerial Assault", "浮空城接舷战"],
             ["Wrecked Academy", "残损学院"],
             ["Signal Light", "信号灯"],
             ["Illusory Heist", "劫虚济实"],
@@ -1253,11 +1366,19 @@
             ["Kaz Falls", "卡兹瀑布"],
             ["Firepower Squad", "火力小队"],
             ["Chaos", "混沌"],
-            ["'Heretics'", "“外道”"]
+            ["Ice Age", "冰川期"],
+            ["Frequent Dispute", "争议频发"],
+            ["Rhine Guardians", "莱茵卫士"],
+            ["Motorized Squad", "机动队"],
+            ["Fate's Finale", "不容拒绝"],
+            ["Dense Jungle", "丛林密布"],
+            ["Motorized Squad", "机动队"]
         ]
     },
     "BattleQuickFormationExpandRole": {
-        "roi": [1166, 0, 114, 120]
+        "algorithm": "OcrDetect",
+        "text": ["JOD", "Job", "Class"],
+        "roi": [1207, 25, 42, 32]
     },
     "BattleQuickFormationFilter-Cost": {
         "text": ["Deployment Cost"],
@@ -1267,8 +1388,11 @@
         "text": ["All"]
     },
     "BattleQuickFormationOCR": {
-        "roi": [0, 231, 116, 22],
-        "specialParams": [105, 2, 7, 0]
+        "rectMove": [0, 231, 116, 22],
+        "specialParams": [105, 2, 7, 0, 3, 10]
+    },
+    "BattleQuickFormationModulePage": {
+        "text": ["Branch"]
     },
     "BattleStartPre": {
         "text": ["Start", "Start Challenge"]
@@ -1292,6 +1416,9 @@
     "StageDrops-TimesCheck": {
         "text": ["Continuous", "Auto", "Operation"]
     },
+    "StageDrops-TimesRec": {
+        "roi": [73, 364, 347, 31]
+    },
     "StageDrops-DropType-ExpAndLMB": {
         "templThreshold": 0.7
     },
@@ -1313,14 +1440,17 @@
     "StageDrops-DropType-Reward": {
         "templThreshold": 0.7
     },
-    "OperBoxRoleTabSelect": {
-        "roi": [1158, 0, 122, 126]
+    "OperBoxSortTabSelect": {
+        "text": ["Level"]
     },
     "OperBoxRoleTab": {
-        "roi": [1166, 0, 114, 124]
+        "baseTask": "BattleQuickFormationExpandRole",
+        "action": "Stop"
     },
     "OperBoxNameOCR": {
-        "specialParams": [160, 4, 7, 0]
+        "rectMove_doc": "for overwidth",
+        "rectMove": [0, 265, 128, 22],
+        "specialParams": [160, 4, 0, 0, 3, 10]
     },
     "SSSBegin": {
         "text": ["Start security operation"],
@@ -1348,10 +1478,11 @@
             ["Sound Recording Amplifier", "声波记录扩音器"],
             ["Arts Resonant Energy Field", "法术调和能量场"],
             ["Security Talent Agreement", "保全人才合作协议"],
-            ["Royal Academy of Sciences Telescope", "皇家科学院望远镜"],
+            ["Royal Academy of Sciences[ Telescope]*", "皇家科学院望远镜"],
             ["Security Talent Agreement", "保全人才合作协议"],
             ["Cloudstepper", "攀云机"],
-            ["Pinnacle Insights? Port", "尖端研究成果共享终端"]
+            ["Pinnacle Insights? Port", "尖端研究成果共享终端"],
+            ["Lightweight Range[finder]*", "轻型瞄准测距仪"]
         ]
     },
     "SSSBuffChooseConfirm": {
@@ -1396,5 +1527,23 @@
     },
     "RecruitSupportConfirm": {
         "text": ["Recruit support", "Recruit Support"]
+    },
+    "Store@EnterTicketStore": {
+        "text": ["Certificate"]
+    },
+    "Store@ChooseMaxAmount": {
+        "text": ["Max"]
+    },
+    "GreenTicket@Store@ChooseTicketType": {
+        "text": ["Commendations"]
+    },
+    "GreenTicket@Store@Purchase": {
+        "text": ["Buy"]
+    },
+    "YellowTicket@Store@ChooseTicketType": {
+        "text": ["Distinctions"]
+    },
+    "YellowTicket@Store@Purchase": {
+        "text": ["Buy"]
     }
 }

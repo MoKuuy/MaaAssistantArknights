@@ -72,7 +72,7 @@ bool asst::ReclamationCraftTaskPlugin::_run()
 
                 // Step 3: 识别组装数量
                 if (!calc_craft_amount(craft_amount)) {
-                    return false;
+                    break;
                 }
 
                 if (craft_amount < 99) {
@@ -160,7 +160,6 @@ bool asst::ReclamationCraftTaskPlugin::calc_craft_amount(int& value)
     const std::string& theme = m_config->get_theme();
 
     RegionOCRer craft_amount_analyzer(ctrler()->get_image());
-    craft_amount_analyzer.set_bin_threshold(200, 255);
     craft_amount_analyzer.set_task_info(theme + "@RA@PIS-CraftAmountOcr");
 
     std::string value_str;
@@ -172,7 +171,8 @@ bool asst::ReclamationCraftTaskPlugin::calc_craft_amount(int& value)
     }
 
     if (!utils::chars_to_number(value_str, value)) {
-        Log.error(__FUNCTION__, "| unable to convert OCR result " + value_str + " to integer");
+        Log.error(__FUNCTION__, "| unable to convert OCR result to integer: ", value_str);
+        value = -1;
         return false;
     }
 

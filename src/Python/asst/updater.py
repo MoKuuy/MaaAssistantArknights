@@ -16,7 +16,7 @@ from . import downloader
 
 class Updater:
     # API的地址
-    Mirrors = ["https://ota.maa.plus"]
+    Mirrors = ["https://api.maa.plus"]
     Summary_json = "/MaaAssistantArknights/api/version/summary.json"
 
     @staticmethod
@@ -79,15 +79,15 @@ class Updater:
                 {
                   "alpha": {
                     "version": "v4.24.0-beta.1.d006.g27dee653d",
-                    "detail": "https://ota.maa.plus/MaaAssistantArknights/api/version/alpha.json"
+                    "detail": "https://api.maa.plus/MaaAssistantArknights/api/version/alpha.json"
                   },
                   "beta": {
                     "version": "v4.24.0-beta.1",
-                    "detail": "https://ota.maa.plus/MaaAssistantArknights/api/version/beta.json"
+                    "detail": "https://api.maa.plus/MaaAssistantArknights/api/version/beta.json"
                   },
                   "stable": {
                     "version": "v4.23.3",
-                    "detail": "https://ota.maa.plus/MaaAssistantArknights/api/version/stable.json"
+                    "detail": "https://api.maa.plus/MaaAssistantArknights/api/version/stable.json"
                   }
                 }
                 """
@@ -131,7 +131,7 @@ class Updater:
             else:
                 # Windows ARM64
                 system_platform = "win-arm64"
-        # 请求的是https://ota.maa.plus/MaaAssistantArknights/api/version/stable.json，或其他版本类型对应的url
+        # 请求的是https://api.maa.plus/MaaAssistantArknights/api/version/stable.json，或其他版本类型对应的url
         detail_json = request.urlopen(detail)
         detail_data = json.loads(detail_json.read().decode("utf-8"))
         assets_list = detail_data["details"]["assets"]     # 列表，子元素为字典
@@ -196,16 +196,20 @@ class Updater:
             # 下载，调用Downloader下载器，使用url_list（镜像url列表）和file（文件保存路径）两个参数
             # Proxy参数没加，因为可能有问题（也可能没问题反正我晚上Clash连不上）
             # 重试3次
+            download_finished = False
             max_retry = 3
             for retry_frequency in range(max_retry):
                 try:
                     Updater.custom_print("开始下载" + (f"，第{retry_frequency}次尝试" if retry_frequency > 1 else ""))
                     # 调用downloader方法进行下载
-                    downloader.file_download(download_url_list=url_list, download_path=file)
+                    download_finished = downloader.file_download(download_url_list=url_list, download_path=file)
                     break           # RNM怎么会有这么蠢的人忘了写break啊淦
                 except(HTTPError, URLError) as e:
                     Updater.custom_print(e)
 
+            if not download_finished:
+                Updater.custom_print('下载异常，更新失败')
+                return
             # 解压下载的文件，
             Updater.custom_print('开始安装更新，请不要关闭')
             file_extension = os.path.splitext(filename)[1]

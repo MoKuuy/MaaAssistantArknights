@@ -163,17 +163,20 @@ ProcessTask::HitDetail ProcessTask::find_first(const TaskList& list) /* const, e
     task_ptr = std::move(res_opt->task_ptr);
 
     if (task_ptr->algorithm == AlgorithmType::MatchTemplate) {
-        auto& raw_result = std::get<0>(res_opt->result);
-        return { .rect = res_opt->rect,
-                 .reco_detail = json::object { { "score", raw_result.score } },
-                 .task_ptr = task_ptr };
+        auto& raw_result = std::get<Matcher::Result>(res_opt->result);
+        return { .rect = res_opt->rect, .reco_detail = { { "score", raw_result.score } }, .task_ptr = task_ptr };
     }
 
     if (task_ptr->algorithm == AlgorithmType::OcrDetect) {
-        auto& raw_result = std::get<1>(res_opt->result);
+        auto& raw_result = std::get<OCRer::Result>(res_opt->result);
         return { .rect = res_opt->rect,
-                 .reco_detail = json::object { { "score", raw_result.score }, { "text", raw_result.text } },
+                 .reco_detail = { { "score", raw_result.score }, { "text", raw_result.text } },
                  .task_ptr = task_ptr };
+    }
+
+    if (task_ptr->algorithm == AlgorithmType::FeatureMatch) {
+        auto& raw_result = std::get<FeatureMatcher::Result>(res_opt->result);
+        return { .rect = res_opt->rect, .reco_detail = { { "count", raw_result.count } }, .task_ptr = task_ptr };
     }
 
     return { .rect = res_opt->rect, .task_ptr = task_ptr };
@@ -208,7 +211,8 @@ ProcessTask::NodeStatus ProcessTask::run_action(const HitDetail& hits) const
             (param_size > 0) ? task->special_params.at(0) : 0,
             (param_size > 1) ? task->special_params.at(1) : false,
             (param_size > 2) ? task->special_params.at(2) : 1,
-            (param_size > 3) ? task->special_params.at(3) : 1);
+            (param_size > 3) ? task->special_params.at(3) : 1,
+            task->high_resolution_swipe_fix);
         return NodeStatus::Success;
     }
     case ProcessTaskAction::DoNothing:
@@ -419,7 +423,8 @@ void ProcessTask::exec_swipe_task(
     int duration,
     bool extra_swipe,
     double slope_in,
-    double slope_out) const
+    double slope_out,
+    bool high_resolution_swipe_fix) const
 {
-    ctrler()->swipe(r1, r2, duration, extra_swipe, slope_in, slope_out);
+    ctrler()->swipe(r1, r2, duration, extra_swipe, slope_in, slope_out, false, high_resolution_swipe_fix);
 }

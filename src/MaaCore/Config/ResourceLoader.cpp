@@ -165,10 +165,14 @@ bool asst::ResourceLoader::load(const std::filesystem::path& path)
     LoadCacheWithoutRet(AvatarCacheManager, "avatars"_p);
 
     // 重要的资源，实时加载（图片还是惰性的）
-    LoadResourceWithTemplAndCheckRet(TaskData, "tasks"_p, "template"_p);
-
-    // 热更是旧格式，现在这个实现很屎，但是可以利用一下屎
-    if (m_loaded) {
+    if (std::filesystem::is_directory(path / "tasks"_p)) {
+        LoadResourceWithTemplAndCheckRet(TaskData, "tasks"_p, "template"_p);
+    }
+    else if (std::filesystem::is_regular_file(path / "tasks.json"_p)) {
+        // wpfGui cache糊屎, 依然会存在 tasks.json for ETag. 未来移除
+        Log.warn("================  DEPRECATED  ================");
+        Log.warn(__FUNCTION__, "resource/tasks.json has been deprecated since v5.15.4");
+        Log.warn("================  DEPRECATED  ================");
         LoadResourceWithTemplAndCheckRet(TaskData, "tasks.json"_p, "template"_p);
     }
 
@@ -189,18 +193,21 @@ bool asst::ResourceLoader::load(const std::filesystem::path& path)
     LoadResourceAndCheckRet(RoguelikeCopilotConfig, "roguelike"_p / "Mizuki"_p / "autopilot"_p);
     LoadResourceAndCheckRet(RoguelikeCopilotConfig, "roguelike"_p / "Sami"_p / "autopilot"_p);
     LoadResourceAndCheckRet(RoguelikeCopilotConfig, "roguelike"_p / "Sarkaz"_p / "autopilot"_p);
+    LoadResourceAndCheckRet(RoguelikeCopilotConfig, "roguelike"_p / "JieGarden"_p / "autopilot"_p);
 
     // –––––––– Roguelike Recruitment Config ––––––––––––––––––––––––––––––––––––––––––
     LoadResourceAndCheckRet(RoguelikeRecruitConfig, "roguelike"_p / "Phantom"_p / "recruitment.json"_p);
     LoadResourceAndCheckRet(RoguelikeRecruitConfig, "roguelike"_p / "Mizuki"_p / "recruitment.json"_p);
     LoadResourceAndCheckRet(RoguelikeRecruitConfig, "roguelike"_p / "Sami"_p / "recruitment.json"_p);
     LoadResourceAndCheckRet(RoguelikeRecruitConfig, "roguelike"_p / "Sarkaz"_p / "recruitment.json"_p);
+    LoadResourceAndCheckRet(RoguelikeRecruitConfig, "roguelike"_p / "JieGarden"_p / "recruitment.json"_p);
 
     // –––––––– Roguelike Shopping Config –––––––––––––––––––––––––––––––––––––––––––––
     LoadResourceAndCheckRet(RoguelikeShoppingConfig, "roguelike"_p / "Phantom"_p / "shopping.json"_p);
     LoadResourceAndCheckRet(RoguelikeShoppingConfig, "roguelike"_p / "Mizuki"_p / "shopping.json"_p);
     LoadResourceAndCheckRet(RoguelikeShoppingConfig, "roguelike"_p / "Sami"_p / "shopping.json"_p);
     LoadResourceAndCheckRet(RoguelikeShoppingConfig, "roguelike"_p / "Sarkaz"_p / "shopping.json"_p);
+    LoadResourceAndCheckRet(RoguelikeShoppingConfig, "roguelike"_p / "JieGarden"_p / "shopping.json"_p);
 
     // –––––––– Roguelike Encounter Config ––––––––––––––––––––––––––––––––––––––––––––
     LoadResourceAndCheckRet(
@@ -215,6 +222,9 @@ bool asst::ResourceLoader::load(const std::filesystem::path& path)
         "roguelike"_p / "Sarkaz"_p / "encounter"_p / "default.json"_p);
     LoadResourceAndCheckRet(
         RoguelikeStageEncounterConfig,
+        "roguelike"_p / "JieGarden"_p / "encounter"_p / "default.json"_p);
+    LoadResourceAndCheckRet(
+        RoguelikeStageEncounterConfig,
         "roguelike"_p / "Phantom"_p / "encounter"_p / "deposit.json"_p);
     LoadResourceAndCheckRet(
         RoguelikeStageEncounterConfig,
@@ -226,6 +236,7 @@ bool asst::ResourceLoader::load(const std::filesystem::path& path)
 
     // –––––––– Roguelike Map Config ––––––––––––––––––––––––––––––––––––––––––––------
     LoadResourceAndCheckRet(RoguelikeMapConfig, "roguelike"_p / "Sarkaz"_p / "map.json"_p);
+    LoadResourceAndCheckRet(RoguelikeMapConfig, "roguelike"_p / "JieGarden"_p / "map.json"_p);
 
     // –––––––– Sami Plugin Config ––––––––––––––––––––––––––––––––––––––––––––––––––––
     LoadResourceAndCheckRet(RoguelikeFoldartalConfig, "roguelike"_p / "Sami"_p / "foldartal.json"_p);

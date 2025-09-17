@@ -15,26 +15,29 @@ class TaskData final : public SingletonHolder<TaskData>, public AbstractConfigWi
 private:
     static MatchTaskConstPtr _default_match_task_info();
     static OcrTaskConstPtr _default_ocr_task_info();
+    static FeatureMatchTaskConstPtr _default_feature_match_task_info();
     static TaskConstPtr _default_task_info();
 
     // 从模板任务生成
     static inline const MatchTaskConstPtr default_match_task_info_ptr = _default_match_task_info();
     static inline const OcrTaskConstPtr default_ocr_task_info_ptr = _default_ocr_task_info();
+    static inline const FeatureMatchTaskConstPtr default_feature_match_task_info_ptr =
+        _default_feature_match_task_info();
     static inline const TaskConstPtr default_task_info_ptr = _default_task_info();
 
     static std::string append_prefix(std::string_view task_name, std::string_view task_prefix);
     static TaskList append_prefix(const TaskList& base_task_list, std::string_view task_prefix);
 
-    template <ranges::forward_range ListType>
+    template <std::ranges::forward_range ListType>
     requires(
-        !std::same_as<ranges::range_value_t<ListType>, std::string> &&
-        requires { std::declval<ranges::range_value_t<ListType>>().as_string(); })
+        !std::same_as<std::ranges::range_value_t<ListType>, std::string> &&
+        requires { std::declval<std::ranges::range_value_t<ListType>>().as_string(); })
     static TaskList to_string_list(const ListType& other_string_list)
     {
         TaskList task_list = {};
         task_list.reserve(other_string_list.size());
-        ranges::copy(
-            other_string_list | views::transform(&ranges::range_value_t<ListType>::as_string),
+        std::ranges::copy(
+            other_string_list | std::views::transform(&std::ranges::range_value_t<ListType>::as_string),
             std::back_inserter(task_list));
         return task_list;
     }
@@ -63,6 +66,11 @@ private:
         MatchTaskConstPtr default_ptr,
         TaskDerivedType derived_type);
     TaskPtr generate_ocr_task_info(std::string_view name, const json::value&, OcrTaskConstPtr default_ptr);
+    TaskPtr generate_feature_match_task_info(
+        std::string_view name,
+        const json::value& task_json,
+        FeatureMatchTaskConstPtr default_ptr,
+        TaskDerivedType derived_type);
 
     decltype(auto) insert_or_assign_raw_task(std::string_view task_name, TaskDerivedPtr task_info_ptr)
     {

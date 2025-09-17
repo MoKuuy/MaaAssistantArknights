@@ -43,9 +43,11 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 // 해당 작업 매개변수
 {
     "enable": bool,              // 이 작업을 활성화할지 여부, 선택 사항, 기본값은 true
-    "client_type": string,       // 클라이언트 버전, 선택 사항, 기본값은 빈 문자열
+    "client_type": string,       // 클라이언트 타입이 필요합니다.
                                  // 옵션: "Official" | "Bilibili" | "txwy" | "YoStarEN" | "YoStarJP" | "YoStarKR"
-    "start_game_enabled": bool   // 클라이언트를 자동으로 실행할지 여부, 선택 사항, 기본값은 false
+    "start_game_enabled": bool,  // 클라이언트를 자동으로 실행할지 여부, 선택 사항, 기본값은 false
+    "account_name": string       // 계정 전환, 선택 사항, 기본값은 전환하지 않음
+                                 // 이미 로그인된 계정으로만 전환 가능, 로그인 이름으로 검색, 모든 로그인된 계정에서 고유한 입력 내용 보장 필요
 }
 ```
 
@@ -77,6 +79,9 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
     "stone": int,               // 최대 사용 가능한 오리지늄의 수, 선택 사항, 기본값은 0
     "times": int,               // 최대 반복 횟수, 선택 사항, 기본값은 무한대입니다.
     "series": int,              // 연전 횟수, 선택사항, 1~6
+                                // -1  시리즈 전환을 비활성화하려면
+                                // 0   현재 사용 가능한 최대 시리즈 수로 자동 전환하려면, 현재 사용 가능한 횟수가 6회 미만인 경우 사용 가능한 최소 횟수를 선택하세요.
+                                // 1~6 지정된 횟수로 변경하려면
     "drops": {                  // 드랍 수량을 지정합니다. 선택 사항, 기본적으로 지정되지 않습니다.
         "30011": int,           // 키: 아이템 ID; 값: 아이템 수량. 키는 resource/item_index.json을 참조합니다.
         "30062": int            // OR 조합
@@ -116,7 +121,10 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
         string,                 // 태그 레벨이 3이면 여기에 있는 태그(있는 경우)가 최대한 많이 선택됩니다.
         ...                     // 또한 강제 선택이므로 '3등급 태그 선택 해제' 설정은 모두 무시됩니다.
     ],
-    "extra_tags_mode": int,
+    "extra_tags_mode": int,     // 더 많은 태그 선택, 선택 사항, 기본값은 0
+                                // 0 - 기본 동작
+                                // 1 - 태그 3개 선택, 충돌 가능
+                                // 2 - 가능한 경우 더 많은 고성급 태그 조합을 동시에 선택, 충돌 가능
     "times": int,               // 고용 횟수, 선택 사항, 기본값은 0입니다. 계산용으로만 0으로 설정할 수 있습니다.
     "set_time": bool,           // 시간을 9시간으로 설정할지 여부, `times`가 0인 경우에만 사용 가능한 옵션입니다, 선택 사항, 기본값은 true입니다.
     "expedite": bool,           // 즉시 완료 허가증을 사용할지 여부, 선택 사항, 기본값은 false입니다.
@@ -146,7 +154,7 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
                             // 10000 - 사용자 정의 모드, 인프라 스키마 문서를 참조하세요.
                             // 20000 - 로테이션: 원키 로테이션 모드로 제어센터, 발전소, 기숙사, 사무실을 스킵하고, 기타 시설은 교대근무를 하지 않고 기본 운영(드론 사용, 접수실 로직 등)을 그대로 유지
     "facility": [           // 전환할 시설, 필수입니다. 실행 중에 편집할 수 없습니다.
-        string,             // 시설 이름: "Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm"
+        string,             // 시설 이름: "Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm" | "Processing" | "Training"
         ...
     ],
     "drones": string,       // 드론 사용, 선택 사항, 기본값은 "_NotUse"입니다.
@@ -170,6 +178,7 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 // 해당 작업 매개변수
 {
     "enable": bool,         // 이 작업을 활성화할지 여부, 선택 사항, 기본값은 true
+    "visit_friends": bool,  // 친구의 기지를 방문하여 크레딧을 획득할지 여부. 선택 사항, 기본값 true
     "shopping": bool,       // 상점에서 아이템을 구매할지 여부, 선택 사항, 기본값은 false입니다. 실행 중에 편집할 수 없습니다.
     "buy_first": [          // 우선적으로 구매할 아이템 목록, 선택 사항입니다. 실행 중에 편집할 수 없습니다.
         string,             // 아이템 이름, 예: "招聘许可" (모집 허가증), "龙门币" (용문폐) 등
@@ -179,9 +188,12 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
         string,             // 아이템 이름, 예: "加急许可" (즉시 완료 허가증), "家具零件" (가구 부품) 등
         ...
     ],
-    "force_shopping_if_credit_full": bool // 크레딧이 넘친다면 블랙리스트를 무시할지 여부, 기본값은 true입니다.
-    "only_buy_discount": bool // 크레딧 포인트가 300 미만으로 떨어질 때 구매를 중단할지 여부입니다. 기본적으로 두 번째 구매 시에만 적용되며 기본값은 false입니다.
-    "reserve_max_credit": boll // 크레딧 포인트가 300 미만으로 떨어질 때 구매를 중단할지 여부. 기본적으로 두 번째 구매 시에만 적용되며 기본값은 false입니다.
+    "force_shopping_if_credit_full": bool,  // 크레딧이 넘친다면 블랙리스트를 무시할지 여부, 기본값은 true입니다.
+    "only_buy_discount": bool,              // 크레딧 포인트가 300 미만으로 떨어질 때 구매를 중단할지 여부입니다. 기본적으로 두 번째 구매 시에만 적용되며 기본값은 false입니다.
+    "reserve_max_credit": bool,             // 크레딧 포인트가 300 미만으로 떨어질 때 구매를 중단할지 여부. 기본적으로 두 번째 구매 시에만 적용되며 기본값은 false입니다.
+    "credit_fight": bool,                   // 지원을 빌려 OF-1 스테이지를 1회 클리어하여 다음 날 더 많은 크레딧을 획득할지 여부. 선택 사항, 기본값 false
+    "formation_index": int                  // OF-1 진행 시 사용할 편성 슬롯의 인덱스. 선택 사항, 기본값 0.
+                                            // 0~4 사이의 정수이며, 0은 현재 편성을, 1~4는 각각 첫 번째~네 번째 편성을 나타냄
 }
 ```
 
@@ -203,10 +215,11 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 {
     "enable": bool,  // 작업을 활성화할지 여부, 선택 가능, 기본값 true
     "theme": string, // 테마, 선택 가능, 기본값 "Phantom"
-                     //   Phantom - 괴영과 주홍색 혈다이아
-                     //   Mizuki  - 수월과 심해의 나무
-                     //   Sami    - 탐색자의 은서림의 종점
-                     //   Sarkaz  - 사카즈의 끝없는 기묘담
+                     //   Phantom   - 괴영과 주홍색 혈다이아
+                     //   Mizuki    - 수월과 심해의 나무
+                     //   Sami      - 탐색자의 은서림의 종점
+                     //   Sarkaz    - 사카즈의 끝없는 기묘담
+                     //   JieGarden - 界园
     "mode": int,     // 모드, 선택 가능, 기본값 0
                      //   0 - 점수/보상 포인트 획득, 가능한 한 안정적으로 더 많은 층 도달
                      //   1 - 원석 정 수집, 첫 층에서 투자 후 종료
@@ -239,7 +252,16 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
         string,                         // 시작 시 목록의 모든 밀문을 보유할 경우 시작 리셋 성공으로 간주;
         ...                             // 주의: 이 파라미터는 "생활 우선 부대"와 함께 사용해야 하며, 다른 부대에서는 시작 보상으로 밀문 획득 불가;
     ],
-    "start_with_two_ideas": bool,       // 2 번 구상 개시 여부 (선택 가능, 기본값: false); 테마가 Sarkaz 이고 모드가 4 일 때만 유효
+    "collectible_mode_start_list": {    // 시작 시 원하는 보상 항목 (선택 사항), 기본값은 모두 false; 모드 4에서만 유효
+        "hot_water": bool,              // 보온병 보상, 물 끓이기 시스템 활성화에 사용됨 (공통)
+        "shield": bool,                 // 방어막 보상, 추가 체력과 동일 (공통)
+        "ingot": bool,                  // 원석 주괴 보상 (공통)
+        "hope": bool,                   // 희망 보상 (공통, 참고: JieGarden 테마에서는 제공되지 않음)
+        "random": bool,                 // 랜덤 보상 옵션: 모든 원석 주괴를 소모해 무작위 수집품 획득 (공통)
+        "key": bool,                    // 열쇠 보상, Mizuki 테마에서만 유효
+        "dice": bool,                   // 주사위 보상, Mizuki 테마에서만 유효
+        "ideas": bool,                  // 2개 구상 보상, Sarkaz 테마에서만 유효
+    },
     "use_foldartal": bool,                    // 밀문 사용 여부, 모드 5에서는 기본값 false, 다른 모드에서는 기본값 true; Sami 테마에만 해당
     "check_collapsal_paradigms": bool,        // 획득한 붕괴 패러다임을 확인할지 여부, 모드 5에서는 기본값 true, 다른 모드에서는 기본값 false
     "double_check_collapsal_paradigms": bool, // 붕괴 패러다임 확인 누락 방지 조치를 수행할지 여부, 모드 5에서는 기본값 true, 다른 모드에서는 기본값 false;

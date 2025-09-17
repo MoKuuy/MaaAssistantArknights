@@ -1,6 +1,6 @@
 // <copyright file="DateTimeExtension.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -62,11 +62,20 @@ namespace MaaWpfGui.Extensions
 
         public static string ToLocalTimeString(this DateTime dt, string? format = null)
         {
-            var dateTimeFormat = LocalizationHelper.FormatDateTime(DateTime.Now);
+            var localTime = dt.Kind switch
+            {
+                DateTimeKind.Utc => dt.ToLocalTime(),
+                DateTimeKind.Local => dt,
+                _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc).ToLocalTime(),
+            };
 
-            return string.IsNullOrEmpty(format)
-                ? dt.ToLocalTime().ToString($"{dateTimeFormat} HH:mm:ss", CustomCultureInfo)
-                : dt.ToLocalTime().ToString(format, CustomCultureInfo);
+            if (!string.IsNullOrEmpty(format))
+            {
+                return localTime.ToString(format, CustomCultureInfo);
+            }
+
+            var dateTimeFormat = LocalizationHelper.FormatDateTime(localTime);
+            return localTime.ToString($"{dateTimeFormat} HH:mm:ss", CustomCultureInfo);
         }
 
         public static DateTime ToDateTime(this System.Runtime.InteropServices.ComTypes.FILETIME filetime)

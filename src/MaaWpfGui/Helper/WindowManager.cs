@@ -1,6 +1,6 @@
 // <copyright file="WindowManager.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -41,7 +41,8 @@ namespace MaaWpfGui.Helper
         /// <summary>
         /// Center other windows in MaaWpfGui.RootView
         /// </summary>
-        private static void MoveWindowToDisplay(Window window)
+        /// <param name="window">需要居中的窗口</param>
+        public static void MoveWindowToRootCenter(Window window)
         {
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow is not { WindowState: WindowState.Normal })
@@ -67,7 +68,7 @@ namespace MaaWpfGui.Helper
                 {
                     window.SourceInitialized += (s, e) =>
                     {
-                        bool success = SetWindowPlacement(window, ref wp);
+                        bool success = SetWindowPlacement(window, ref wp, minimizeDirectly: _minimizeDirectly);
                         _logger.Information("Whether the window placement was set successfully: {Success}", success);
                     };
                 }
@@ -95,11 +96,6 @@ namespace MaaWpfGui.Helper
                     };
                 }
 
-                if (_minimizeDirectly)
-                {
-                    window.WindowState = WindowState.Minimized;
-                }
-
                 // ReSharper disable once InvertIf
                 if (_minimizeDirectly && _minimizeToTray)
                 {
@@ -109,7 +105,7 @@ namespace MaaWpfGui.Helper
             }
             else if (!isDialog && ownerViewModel == null)
             {
-                MoveWindowToDisplay(window);
+                MoveWindowToRootCenter(window);
             }
 
             return window;
@@ -156,14 +152,31 @@ namespace MaaWpfGui.Helper
             return false;
         }
 
-        public bool ForceShow(Window window)
+        /// <summary>
+        /// 显示窗口并激活
+        /// </summary>
+        /// <param name="window">需要操作的窗口</param>
+        /// <returns>是否成功激活</returns>
+        public static bool ShowWindow(Window window)
+        {
+            window.Show();
+            window.WindowState = WindowState.Normal;
+            return window.Activate();
+        }
+
+        /// <summary>
+        /// 强制显示窗口并激活
+        /// </summary>
+        /// <param name="window">需要操作的窗口</param>
+        /// <returns>是否成功激活</returns>
+        public static bool ForceShow(Window window)
         {
             WindowPlacement wp = default;
             var result = SetWindowPlacement(window, ref wp, true);
             return result;
         }
 
-        private bool SetWindowPlacement(WindowHandle window, ref WindowPlacement wp, bool force = false)
+        private static bool SetWindowPlacement(WindowHandle window, ref WindowPlacement wp, bool force = false, bool minimizeDirectly = false)
         {
             try
             {
@@ -174,7 +187,7 @@ namespace MaaWpfGui.Helper
                 wp.Flags = 0;
 
                 // wp.ShowCmd = wp.ShowCmd == SwShowminimized ? SwShownormal : wp.ShowCmd;
-                wp.ShowCmd = !_minimizeDirectly || force ? SwShownormal : SwShowminimized;
+                wp.ShowCmd = !minimizeDirectly || force ? SwShownormal : SwShowminimized;
                 return SetWindowPlacement(window.Handle, ref wp);
             }
             catch

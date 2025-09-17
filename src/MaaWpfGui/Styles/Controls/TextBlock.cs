@@ -1,6 +1,6 @@
 // <copyright file="TextBlock.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,7 +11,9 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
+using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Media;
 using MaaWpfGui.Helper;
 
@@ -67,6 +69,38 @@ namespace MaaWpfGui.Styles.Controls
                 }
 
                 SetValue(ForegroundProperty, brush);
+            }
+        }
+
+        public static readonly DependencyProperty BindableInlinesProperty =
+            DependencyProperty.RegisterAttached(
+                "BindableInlines",
+                typeof(IEnumerable<Inline>),
+                typeof(TextBlock),
+                new PropertyMetadata(null, OnBindableInlinesChanged));
+
+        public static void SetBindableInlines(DependencyObject element, IEnumerable<Inline> value)
+            => element.SetValue(BindableInlinesProperty, value);
+
+        public static IEnumerable<Inline> GetBindableInlines(DependencyObject element)
+            => (IEnumerable<Inline>)element.GetValue(BindableInlinesProperty);
+
+        private static void OnBindableInlinesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not TextBlock tb)
+            {
+                return;
+            }
+
+            tb.Inlines.Clear();
+            if (e.NewValue is not IEnumerable<Inline> inlines)
+            {
+                return;
+            }
+
+            foreach (var inline in inlines)
+            {
+                tb.Inlines.Add(inline);
             }
         }
     }

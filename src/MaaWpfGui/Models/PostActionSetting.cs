@@ -1,6 +1,6 @@
 // <copyright file="PostActionSetting.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,11 +10,13 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Input;
+using JetBrains.Annotations;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using Newtonsoft.Json;
@@ -306,7 +308,7 @@ public class PostActionSetting : PropertyChangedBase
     }
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void PostActionsAndOnce(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Right)
@@ -320,7 +322,7 @@ public class PostActionSetting : PropertyChangedBase
     }
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void PostActionsClear()
     {
         Once = false;

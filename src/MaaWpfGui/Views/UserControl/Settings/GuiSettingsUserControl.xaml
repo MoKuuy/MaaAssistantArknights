@@ -45,10 +45,10 @@
                     IsChecked="{Binding MinimizeToTray}"
                     Visibility="{c:Binding UseTray,
                                            FalseToVisibility=Collapsed}" />
-                <CheckBox
-                    Margin="10"
-                    Content="{DynamicResource SystemNotification}"
-                    IsChecked="{Binding UseNotify}" />
+                <StackPanel Margin="10" Orientation="Horizontal">
+                    <CheckBox Content="{DynamicResource SystemNotification}" IsChecked="{Binding UseNotify}" />
+                    <controls:TooltipBlock TooltipText="{DynamicResource SystemNotificationInfo}" />
+                </StackPanel>
                 <CheckBox
                     Margin="10"
                     Content="{DynamicResource HideCloseButton}"
@@ -57,12 +57,13 @@
                     Margin="10"
                     Content="{DynamicResource WindowTitleScrollable}"
                     IsChecked="{Binding WindowTitleScrollable}" />
-                <CheckBox
-                    Margin="10"
-                    Content="{DynamicResource MainTasksNullFunctionality}"
-                    IsChecked="{Binding MainTasksInvertNullFunction}"
-                    ToolTip="{DynamicResource MainTasksNullFunctionalityTip}"
-                    ToolTipService.InitialShowDelay="0" />
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox
+                        Margin="10,10,0,10"
+                        Content="{DynamicResource MainTasksNullFunctionality}"
+                        IsChecked="{Binding MainTasksInvertNullFunction}" />
+                    <controls:TooltipBlock TooltipText="{DynamicResource MainTasksNullFunctionalityTip}" />
+                </StackPanel>
                 <hc:CheckComboBox
                     Width="180"
                     Margin="10"

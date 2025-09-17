@@ -1,6 +1,6 @@
 // <copyright file="ThemeHelper.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -15,6 +15,7 @@ using System.Windows;
 using System.Windows.Media;
 using HandyControl.Themes;
 using HandyControl.Tools;
+using JetBrains.Annotations;
 using MaaWpfGui.Constants;
 using MaaWpfGui.WineCompat;
 using Microsoft.Win32;
@@ -117,7 +118,7 @@ namespace MaaWpfGui.Helper
                 : $"#FF{color.R:X2}{color.G:X2}{color.B:X2}";
         }
 
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public static string Brush2HexString(SolidColorBrush brush, bool keepAlpha = false)
         {
             return brush != null

@@ -13,12 +13,10 @@ using namespace asst;
 
 VisionHelper::VisionHelper(const cv::Mat& image, const Rect& roi, Assistant* inst) :
     InstHelper(inst),
-    m_image(image)
+    m_image(image),
 #ifdef ASST_DEBUG
-    ,
-    m_image_draw(image.clone())
+    m_image_draw(image.clone()),
 #endif
-    ,
     m_roi(correct_rect(roi, image))
 {
 }
@@ -41,6 +39,38 @@ void VisionHelper::set_roi(const Rect& roi)
 void VisionHelper::set_log_tracing(bool enable)
 {
     m_log_tracing = enable;
+}
+
+Rect asst::VisionHelper::correct_rect(const Rect& rect, const Rect& main_roi)
+{
+    if (main_roi.empty()) {
+        return { 0, 0, 0, 0 };
+    }
+
+    Rect res = rect;
+    if (res.x < 0) {
+        res.x = 0;
+        res.width = rect.width + rect.x;
+    }
+    if (res.y < 0) {
+        res.y = 0;
+        res.height = rect.height + rect.y;
+    }
+    if (res.x < main_roi.x) {
+        res.x = main_roi.x;
+        res.width = res.width - (main_roi.x - res.x);
+    }
+    if (res.y < main_roi.y) {
+        res.y = main_roi.y;
+        res.height = res.height - (main_roi.y - res.y);
+    }
+    if (res.x + res.width > main_roi.x + main_roi.width) {
+        res.width = main_roi.x + main_roi.width - res.x;
+    }
+    if (res.y + res.height > main_roi.y + main_roi.height) {
+        res.height = main_roi.y + main_roi.height - res.y;
+    }
+    return res;
 }
 
 Rect VisionHelper::correct_rect(const Rect& rect, const cv::Mat& image)
@@ -82,9 +112,26 @@ Rect VisionHelper::correct_rect(const Rect& rect, const cv::Mat& image)
     return res;
 }
 
+cv::Mat asst::VisionHelper::create_mask(const cv::Mat& image, bool green_mask)
+{
+    cv::Mat mask = cv::Mat::ones(image.size(), CV_8UC1);
+    if (green_mask) {
+        cv::inRange(image, cv::Scalar(0, 255, 0), cv::Scalar(0, 255, 0), mask);
+        mask = ~mask;
+    }
+    return mask;
+}
+
+cv::Mat asst::VisionHelper::create_mask(const cv::Mat& image, const cv::Rect& roi)
+{
+    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+    mask(roi) = 255;
+    return mask;
+}
+
 bool VisionHelper::save_img(const std::filesystem::path& relative_dir)
 {
-    std::string stem = utils::get_time_filestem();
+    std::string stem = utils::format_now_for_filename();
     auto relative_path = relative_dir / (stem + "_raw.png");
     Log.trace("Save image", relative_path);
     bool ret = imwrite(relative_path, m_image);
@@ -94,4 +141,20 @@ bool VisionHelper::save_img(const std::filesystem::path& relative_dir)
 #endif
 
     return ret;
+}
+
+cv::Mat VisionHelper::draw_roi(const cv::Rect& roi, const cv::Mat& base) const
+{
+    cv::Mat image_draw = base.empty() ? m_image.clone() : base;
+    const cv::Scalar color(0, 255, 0);
+
+    // cv::putText(image_draw, name_, cv::Point(5, m_image.rows - 5), cv::FONT_HERSHEY_SIMPLEX, 1, color, 2);
+
+    cv::rectangle(image_draw, roi, color, 1);
+    // std::string flag = MAA_FMT::format("ROI: [{}, {}, {}, {}]", roi.x, roi.y, roi.width, roi.height);
+    std::string flag = "ROI: [" + std::to_string(roi.x) + ", " + std::to_string(roi.y) + ", " +
+                       std::to_string(roi.width) + ", " + std::to_string(roi.height) + "]";
+    cv::putText(image_draw, flag, cv::Point(roi.x, roi.y - 5), cv::FONT_HERSHEY_PLAIN, 1.2, color, 1);
+
+    return image_draw;
 }

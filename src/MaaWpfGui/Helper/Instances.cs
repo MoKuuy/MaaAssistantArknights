@@ -1,6 +1,6 @@
 // <copyright file="Instances.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,16 +10,18 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #pragma warning disable SA1401
 
-using System;
 using GlobalHotKey;
 using MaaWpfGui.Main;
+using MaaWpfGui.Services;
 using MaaWpfGui.Services.HotKeys;
 using MaaWpfGui.Services.Managers;
 using MaaWpfGui.Services.RemoteControl;
 using MaaWpfGui.Services.Web;
 using MaaWpfGui.ViewModels.UI;
+using MaaWpfGui.ViewModels.UserControl.TaskQueue;
 using Stylet;
 using StyletIoC;
 
@@ -32,30 +34,17 @@ namespace MaaWpfGui.Helper
     {
         public static class Data
         {
-            // 理智数据缓存，HasSanityReport判定数据是否可用
-            public static class SanityReport
-            {
-                public static bool HasSanityReport { get; set; }
+            public static int MedicineUsedTimes { get; set; }
 
-                /// <summary>
-                /// Gets 当前理智 / 最大理智
-                /// </summary>
-                public static int[] Sanity { get; } = [-1, -1];
+            public static int ExpiringMedicineUsedTimes { get; set; }
 
-                public static DateTimeOffset ReportTime { get; set; }
-            }
+            public static int StoneUsedTimes { get; set; }
 
-            public static int MedicineUsedTimes;
-
-            public static int ExpiringMedicineUsedTimes;
-
-            public static int StoneUsedTimes;
-
-            public static bool HasPrintedScreencapWarning;
+            public static bool HasPrintedScreencapWarning { get; set; }
 
             public static void ClearCache()
             {
-                SanityReport.HasSanityReport = false;
+                FightSettingsUserControlModel.SanityReport = null;
                 MedicineUsedTimes = 0;
                 ExpiringMedicineUsedTimes = 0;
                 StoneUsedTimes = 0;
@@ -79,6 +68,8 @@ namespace MaaWpfGui.Helper
 
         public static AsstProxy AsstProxy { get; private set; }
 
+        public static StageManager StageManager { get; private set; }
+
         public static HotKeyManager HotKeyManager { get; private set; }
 
         public static IMaaHotKeyManager MaaHotKeyManager { get; private set; }
@@ -99,20 +90,21 @@ namespace MaaWpfGui.Helper
         {
             WindowManager = container.Get<WindowManager>();
 
+            // 这两实例化时存在依赖顺序
+            HttpService = container.Get<HttpService>();
+            MaaApiService = container.Get<MaaApiService>();
+
+            VersionUpdateViewModel = container.Get<VersionUpdateViewModel>();
+            AnnouncementViewModel = container.Get<AnnouncementViewModel>();
             AsstProxy = container.Get<AsstProxy>();
             TaskQueueViewModel = container.Get<TaskQueueViewModel>();
             RecognizerViewModel = container.Get<RecognizerViewModel>();
             SettingsViewModel = container.Get<SettingsViewModel>();
             CopilotViewModel = container.Get<CopilotViewModel>();
-            VersionUpdateViewModel = container.Get<VersionUpdateViewModel>();
-            AnnouncementViewModel = container.Get<AnnouncementViewModel>();
-
-            // 这两实例化时存在依赖顺序
-            HttpService = container.Get<HttpService>();
-            MaaApiService = container.Get<MaaApiService>();
 
             RemoteControlService = container.Get<RemoteControlService>();
 
+            StageManager = container.Get<StageManager>();
             HotKeyManager = container.Get<HotKeyManager>();
             MaaHotKeyManager = container.Get<MaaHotKeyManager>();
             MaaHotKeyActionHandler = container.Get<MaaHotKeyActionHandler>();

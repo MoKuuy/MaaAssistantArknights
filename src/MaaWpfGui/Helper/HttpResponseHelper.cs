@@ -1,6 +1,6 @@
 // <copyright file="HttpResponseHelper.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 
 using System;
@@ -26,7 +27,7 @@ namespace MaaWpfGui.Helper
 
         public static async Task<bool> SaveResponseToFileAsync(HttpResponseMessage? response, string saveTo, bool saveAndDeleteTmp = true)
         {
-            saveTo = Path.Combine(Environment.CurrentDirectory, saveTo);
+            saveTo = Path.Combine(PathsHelper.BaseDir, saveTo);
 
             var tempFile = saveTo + ".tmp";
             if (File.Exists(tempFile))
@@ -42,7 +43,7 @@ namespace MaaWpfGui.Helper
             }
             catch (Exception e)
             {
-                _logger.Error("Failed to save response to file: " + e.Message);
+                _logger.Error(e, "Failed to save response to file: ");
                 return false;
             }
 
@@ -70,7 +71,7 @@ namespace MaaWpfGui.Helper
             }
             catch (Exception e)
             {
-                _logger.Error("Failed to get response as stream: " + e.Message);
+                _logger.Error(e, "Failed to get response as stream: ");
                 return null;
             }
         }
@@ -88,7 +89,7 @@ namespace MaaWpfGui.Helper
             }
             catch (Exception e)
             {
-                _logger.Error("Failed to get response as string: " + e.Message);
+                _logger.Error(e, "Failed to get response as string: ");
                 return string.Empty;
             }
         }

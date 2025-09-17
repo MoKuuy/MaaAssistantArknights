@@ -28,7 +28,13 @@ bool asst::RoguelikeRecruitTaskPlugin::verify(AsstMsg msg, const json::value& de
     if (task_view.starts_with(roguelike_name)) {
         task_view.remove_prefix(roguelike_name.length());
     }
-    if (task_view == "Roguelike@ChooseOper") {
+    if (task_view.ends_with("Roguelike@StartExplore")) {
+        m_initail_recruit = true;
+    }
+    if (task_view.ends_with("Roguelike@EnterAfterRecruit")) {
+        m_initail_recruit = false;
+    }
+    if (task_view.ends_with("Roguelike@ChooseOper")) {
         return true;
     }
     else {
@@ -70,30 +76,43 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
 
     ++m_recruit_count;
 
-    if (m_config->get_theme() == RoguelikeTheme::Sarkaz && m_config->get_mode() == RoguelikeMode::Investment &&
-        m_config->get_squad() == "点刺成锭分队") {
-        ProcessTask(*this, { "Sarkaz@RoguelikeRecruit-GiveUp" }).run();
-        return true;
-    }
+    auto& theme = m_config->get_theme();
+    auto mode = m_config->get_mode();
+    auto& squad = m_config->get_squad();
+    auto difficulty = m_config->get_difficulty();
 
-    if (m_config->get_mode() == RoguelikeMode::Investment && m_recruit_count > 1 &&
-        m_config->get_squad() == "蓝图测绘分队") {
-        // 如果是投资模式，直接招募第一个干员
-        lazy_recruit();
-        return true;
-    }
-
-    // 是否使用助战干员开局
-    if (m_config->get_use_support()) {
-        if (recruit_support_char()) {
-            m_starts_complete = true;
+    if (theme == RoguelikeTheme::Sarkaz && mode == RoguelikeMode::Investment) {
+        if (squad == "点刺成锭分队") {
+            ProcessTask(*this, { "Sarkaz@RoguelikeRecruit-GiveUp" }).run();
+            return true;
+        }
+        if (squad == "蓝图测绘分队" && m_recruit_count > 1) {
+            lazy_recruit();
             return true;
         }
     }
-    else {
-        if (recruit_own_char()) {
-            m_starts_complete = true;
+
+    // 时光之末的特殊用法
+    if (theme == RoguelikeTheme::JieGarden && squad == "指挥分队" && difficulty >= 3) {
+        if (mode == RoguelikeMode::Investment ||
+            (mode == RoguelikeMode::Collectible && m_config->get_run_for_collectible())) {
+            ProcessTask(*this, { "JieGarden@RoguelikeRecruit-GiveUp" }).run();
             return true;
+        }
+    }
+
+    if (m_initail_recruit && m_recruit_count == 1) {
+        if (m_config->get_use_support()) { // 是否使用助战干员开局
+            if (recruit_support_char()) {
+                m_starts_complete = true;
+                return true;
+            }
+        }
+        else {
+            if (recruit_own_char()) {
+                m_starts_complete = true;
+                return true;
+            }
         }
     }
 
@@ -279,6 +298,10 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
                         oper_info.name,
                         oper_info.elite,
                         oper_info.level);
+
+                    // REFACTOR ME: 不招募情况没有对 oper_list 进行处理
+                    // 若遇到 offset ，最终 priority 可能为正，会导致练度不够也招募 @Daydreamer114 @Saratoga-Official
+                    priority -= 114514;
                 }
 
                 if (temp_recruit_exist && !oper_info.name.starts_with("预备干员")) {
@@ -291,7 +314,7 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
                     // __________________will-be-removed-begin__________________
                     const battle::Role oper_role = get_oper_role(oper_info.name);
                     int role_num = recruit_info.offset_melee ? offset_melee_num : team_roles[oper_role];
-                    for (const auto& offset_pair : ranges::reverse_view(recruit_info.recruit_priority_offset)) {
+                    for (const auto& offset_pair : std::ranges::reverse_view(recruit_info.recruit_priority_offset)) {
                         if (role_num >= offset_pair.first) {
                             priority += offset_pair.second;
                             break;
@@ -299,7 +322,7 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
                     }
                     // role_num = team_roles[oper_role];
                     // const auto role_info = RoguelikeRecruit.get_role_info(rogue_theme, oper_role);
-                    // for (const auto& offset_pair : ranges::reverse_view(role_info)) {
+                    // for (const auto& offset_pair : std::ranges::reverse_view(role_info)) {
                     //     if (role_num >= offset_pair.first) {
                     //         priority += offset_pair.second;
                     //         break;
@@ -346,7 +369,7 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
             }
 
             // 添加到候选名单
-            auto existing_it = ranges::find_if(recruit_list, [&](const RoguelikeRecruitInfo& pri) -> bool {
+            auto existing_it = std::ranges::find_if(recruit_list, [&](const RoguelikeRecruitInfo& pri) -> bool {
                 return pri.name == recruit_info.name;
             });
             if (existing_it == recruit_list.cend()) {
@@ -433,7 +456,8 @@ bool asst::RoguelikeRecruitTaskPlugin::_run()
     }
 
     // 选择优先级最高的干员
-    auto selected_oper = ranges::max_element(recruit_list, std::less {}, std::mem_fn(&RoguelikeRecruitInfo::priority));
+    auto selected_oper =
+        std::ranges::max_element(recruit_list, std::less {}, std::mem_fn(&RoguelikeRecruitInfo::priority));
     if (selected_oper == recruit_list.cend()) {
         Log.trace(__FUNCTION__, "| No opers in recruit list.");
         return false;
@@ -505,13 +529,13 @@ bool asst::RoguelikeRecruitTaskPlugin::recruit_appointed_char(const std::string&
         // 只处理识别成功的情况，失败(无任何结果)时继续滑动
         if (analyzer.analyze()) {
             const auto& chars = analyzer.get_result();
-            max_oper_x = ranges::max(chars | views::transform([&](const auto& x) { return x.rect.x; }));
-            auto it = ranges::find_if(chars, [&](const battle::roguelike::Recruitment& oper) -> bool {
+            max_oper_x = std::ranges::max(chars | std::views::transform([&](const auto& x) { return x.rect.x; }));
+            auto it = std::ranges::find_if(chars, [&](const battle::roguelike::Recruitment& oper) -> bool {
                 return oper.name == char_name;
             });
 
             std::unordered_set<std::string> oper_names;
-            ranges::transform(
+            std::ranges::transform(
                 chars,
                 std::inserter(oper_names, oper_names.end()),
                 std::mem_fn(&battle::roguelike::Recruitment::name));
@@ -571,8 +595,7 @@ bool asst::RoguelikeRecruitTaskPlugin::recruit_support_char()
     LogTraceFunction;
     const int MaxRefreshTimes = Task.get("RoguelikeRefreshSupportBtnOcr")->special_params.front();
 
-    auto core_opt = m_config->get_core_char();
-    m_config->set_core_char("");
+    const auto& core_opt = m_config->get_core_char();
     if (!core_opt.empty()) {
         if (recruit_support_char(core_opt, MaxRefreshTimes)) {
             return true;
@@ -662,8 +685,10 @@ bool asst::RoguelikeRecruitTaskPlugin::recruit_support_char(const std::string& n
     auto& satisfied_char = satisfied_chars.front();
     select_oper(satisfied_char.oper_info);
 
+    sleep(500);
+
     // 确认选择
-    ProcessTask(*this, { "Roguelike@RecruitSupportConfirm" }).run();
+    ProcessTask(*this, { "Roguelike@RecruitSupportConfirm" }).set_retry_times(20).run();
     return true;
 }
 
@@ -671,11 +696,10 @@ bool asst::RoguelikeRecruitTaskPlugin::recruit_own_char()
 {
     LogTraceFunction;
 
-    auto core_opt = m_config->get_core_char();
+    const auto& core_opt = m_config->get_core_char();
     if (core_opt.empty()) {
         return false;
     }
-    m_config->set_core_char("");
     return recruit_appointed_char(core_opt);
 }
 

@@ -43,7 +43,7 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
 // 对应的任务参数
 {
     "enable": bool,              // 是否启用本任务，可选，默认为 true
-    "client_type": string,       // 客户端版本，可选，默认为空
+    "client_type": string,       // 客户端版本，必选
                                  // 选项："Official" | "Bilibili" | "txwy" | "YoStarEN" | "YoStarJP" | "YoStarKR"
     "start_game_enabled": bool,  // 是否自动启动客户端，可选，默认不启动
     "account_name": string       // 切换账号，可选，默认不切换
@@ -80,8 +80,11 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
     "medicine": int,            // 最大使用理智药数量，可选，默认 0
     "expiring_medicine": int,   // 最大使用 48 小时内过期理智药数量，可选，默认 0
     "stone": int,               // 最大吃石头数量，可选，默认 0
-    "times": int,               // 指定次数，可选，默认无穷大
-    "series": int,              // 连战次数，可选，1~6
+    "times": int,               // 战斗次数，可选，默认int32.max
+    "series": int,              // 连战次数, 可选, -1~6
+                                // -1  为禁用切换
+                                // 0   为自动切换为当前可用的最大次数, 如当前理智不够6次, 则选择最低可用次数
+                                // 1~6 为指定连战次数
     "drops": {                  // 指定掉落数量，可选，默认不指定
         "30011": int,           // key - item_id, value 数量. key 可参考 resource/item_index.json 文件
         "30062": int            // 是或的关系
@@ -157,7 +160,7 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
                             // 20000 - Rotation: 一键轮换模式，会跳过控制中枢、发电站、宿舍以及办公室，其余设施不进行换班但保留基本操作（如使用无人机、会客室逻辑）
 
     "facility": [           // 要换班的设施（有序），必选。不支持运行中设置
-        string,             // 设施名，"Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm"
+        string,             // 设施名，"Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm" | "Processing" | "Training"
         ...
     ],
     "drones": string,       // 无人机用途，可选项，默认 _NotUse
@@ -171,6 +174,7 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
     "dorm_notstationed_enabled": bool, // 是否启用宿舍“未进驻”选项，可选，默认 false
     "dorm_trust_enabled": bool, // 是否将宿舍剩余位置填入信赖未满干员，可选，默认 false
     "reception_message_board": bool, // 是否领取会客室信息板信用，可选，默认 true
+    "reception_clue_exchange": bool, // 是否进行线索交流，可选，默认 true
 
     /* 以下参数仅在 mode = 10000 时生效，否则会被忽略 */
     "filename": string,     // 自定义配置路径，必选。不支持运行中设置
@@ -185,19 +189,23 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
 ```json5
 // 对应的任务参数
 {
-    "enable": bool,         // 是否启用本任务，可选，默认为 true
-    "shopping": bool,       // 是否购物，可选，默认 false。不支持运行中设置
-    "buy_first": [          // 优先购买列表，可选。不支持运行中设置
+    "enable": bool,         // 是否启用本任务，可选，默认值 true
+    "visit_friends": bool,  // 是否访问好友基建以获得信用，可选，默认值 true
+    "shopping": bool,       // 是否购物，可选，默认值 true
+    "buy_first": [          // 优先购买列表，可选，默认值 []
         string,             // 商品名，如 "招聘许可"、"龙门币" 等
         ...
     ],
-    "blacklist": [          // 黑名单列表，可选。不支持运行中设置
+    "blacklist": [          // 购物黑名单列表，可选，默认值 []
         string,             // 商品名，如 "加急许可"、"家具零件" 等
         ...
     ],
-   "force_shopping_if_credit_full": bool // 是否在信用溢出时无视黑名单，默认为 true
-    "only_buy_discount": bool // 是否只购买折扣物品，只作用于第二轮购买，默认为 false
-    "reserve_max_credit": bool // 是否在信用点低于300时停止购买，只作用于第二轮购买，默认为 false
+    "force_shopping_if_credit_full": bool,  // 是否在信用溢出时无视黑名单，可选，默认值 false
+    "only_buy_discount": bool,              // 是否只购买折扣物品，只作用于第二轮购买，可选，默认值 false
+    "reserve_max_credit": bool,             // 是否在信用点低于 300 时停止购买，只作用于第二轮购买，可选，默认值 false
+    "credit_fight": bool,                   // 是否借助战打一局 OF-1 关卡以便在第二天获得更多信用，可选，默认值 false
+    "formation_index": int                  // 打 OF-1 时所使用的编队栏位的编号，可选，默认值 0；
+                                            // 为 0–4 的整数，其中 0 表示选择当前编队，1-4 分别表示第一、二、三、四编队
 }
 ```
 
@@ -225,10 +233,11 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
 {
     "enable": bool,  // 是否启用本任务，可选，默认值 true
     "theme": string, // 主题，可选，默认值 "Phantom"
-                     //   Phantom - 傀影与猩红血钻
-                     //   Mizuki  - 水月与深蓝之树
-                     //   Sami    - 探索者的银凇止境
-                     //   Sarkaz  - 萨卡兹的无终奇语
+                     //   Phantom   - 傀影与猩红血钻
+                     //   Mizuki    - 水月与深蓝之树
+                     //   Sami      - 探索者的银凇止境
+                     //   Sarkaz    - 萨卡兹的无终奇语
+                     //   JieGarden - 界园
     "mode": int,     // 模式，可选，默认值 0
                      //   0 - 刷分/奖励点数，尽可能稳定地打更多层数
                      //   1 - 刷源石锭，第一层投资完就退出
@@ -263,7 +272,16 @@ AsstTaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const cha
       string,                           // 仅当开局拥有列表中所有的密文板时才算凹开局成功；
       ...                               // 注意，此参数须与 “生活至上分队” 同时使用，其他分队在开局奖励阶段不会获得密文板；
     ],
-    "start_with_two_ideas": bool,       // 是否凹 2 构想开局，可选，默认值 false；仅在主题为 Sarkaz 且模式为 4 时有效
+    "collectible_mode_start_list": {    // 凹开局时期望的奖励，可选，默认全为 false；仅在模式为 4 时有效
+        "hot_water": bool,              // 热水壶奖励，常用于触发烧水机制（通用）
+        "shield": bool,                 // 护盾奖励，约等于额外生命值（通用）
+        "ingot": bool,                  // 源石锭奖励（通用）
+        "hope": bool,                   // 希望奖励（通用，注意：JieGarden 主题下无 hope 奖励）
+        "random": bool,                 // 随机奖励选项：游戏中指“消耗所有源石锭换一个随机收藏品”（通用）
+        "key": bool,                    // 钥匙奖励，仅在 Mizuki 主题时有效
+        "dice": bool,                   // 骰子奖励，仅在 Mizuki 主题时有效
+        "ideas": bool,                  // 2 构想奖励，仅在 Sarkaz 主题时有效
+    },
     "use_foldartal": bool,                    // 是否使用密文板，模式 5 下默认值 false，其他模式下默认值 true；仅适用于 Sami 主题
     "check_collapsal_paradigms": bool,        // 是否检测获取的坍缩范式，模式 5 下默认值 true，其他模式下默认值 false
     "double_check_collapsal_paradigms": bool, // 是否执行坍缩范式检测防漏措施，模式 5 下默认值 true，其他模式下默认值 false；

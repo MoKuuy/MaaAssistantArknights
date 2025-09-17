@@ -1,6 +1,6 @@
 // <copyright file="IHttpService.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 
 using System;
@@ -17,6 +18,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace MaaWpfGui.Services.Web
 {
@@ -27,8 +29,9 @@ namespace MaaWpfGui.Services.Web
         /// </summary>
         /// <param name="uri">Target Uri</param>
         /// <param name="extraHeader">Extra HTTP Request Headers</param>
+        /// <param name="uriPartial">Which parts of uri to log</param>
         /// <returns>Legacy in ms, -1 when response code not equal 200</returns>
-        Task<double> HeadAsync(Uri uri, Dictionary<string, string>? extraHeader = null);
+        Task<double> HeadAsync(Uri uri, Dictionary<string, string>? extraHeader = null, UriPartial uriPartial = UriPartial.Query);
 
         /// <summary>
         /// Send HTTP GET request and get a string response
@@ -36,9 +39,8 @@ namespace MaaWpfGui.Services.Web
         /// <param name="uri">Target Uri</param>
         /// <param name="extraHeader">Extra HTTP Request Headers</param>
         /// <param name="httpCompletionOption">The HTTP completion option</param>
-        /// <param name="logQuery">Whether to log uri</param>
         /// <returns>Response string, null when failed</returns>
-        Task<string?> GetStringAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead, bool logQuery = true);
+        Task<string?> GetStringAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead);
 
         /// <summary>
         /// Send HTTP GET request and get a body stream response
@@ -46,10 +48,9 @@ namespace MaaWpfGui.Services.Web
         /// <param name="uri">Target Uri</param>
         /// <param name="extraHeader">Extra HTTP Request Headers</param>
         /// <param name="httpCompletionOption">The HTTP completion option</param>
-        /// <param name="logQuery">Whether to log uri</param>
         /// <returns>Response stream, null when failed</returns>
-        // ReSharper disable once UnusedMember.Global
-        Task<Stream?> GetStreamAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead, bool logQuery = true);
+        [UsedImplicitly]
+        Task<Stream?> GetStreamAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead);
 
         /// <summary>
         /// Send HTTP GET request and get the original <see cref="HttpRequestMessage"/>
@@ -57,9 +58,9 @@ namespace MaaWpfGui.Services.Web
         /// <param name="uri">Target Uri</param>
         /// <param name="extraHeader">Extra HTTP Request Headers</param>
         /// <param name="httpCompletionOption">The HTTP completion option</param>
-        /// <param name="logQuery">Whether to log uri</param>
+        /// <param name="uriPartial">Which parts of uri to log</param>
         /// <returns><see cref="HttpRequestMessage"/> object</returns>
-        Task<HttpResponseMessage?> GetAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseHeadersRead, bool logQuery = true);
+        Task<HttpResponseMessage> GetAsync(Uri uri, Dictionary<string, string>? extraHeader = null, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseHeadersRead, UriPartial uriPartial = UriPartial.Query);
 
         /// <summary>
         /// Send HTTP POST request and a string response
@@ -79,6 +80,16 @@ namespace MaaWpfGui.Services.Web
         /// <param name="extraHeader">Extra HTTP Request Headers</param>
         /// <returns>Response string, null when failed</returns>
         Task<string?> PostAsFormUrlEncodedAsync(Uri uri, Dictionary<string, string?> content, Dictionary<string, string>? extraHeader = null);
+
+        /// <summary>
+        /// Send HTTP POST request with raw HttpContent and get the response
+        /// </summary>
+        /// <param name="uri">Target Uri</param>
+        /// <param name="content">The POST body content</param>
+        /// <param name="extraHeader">Extra HTTP Request Headers</param>
+        /// <param name="uriPartial">Which parts of uri to log</param>
+        /// <returns>HttpResponseMessage, null when failed</returns>
+        Task<HttpResponseMessage> PostAsync(Uri uri, HttpContent content, Dictionary<string, string>? extraHeader = null, UriPartial uriPartial = UriPartial.Query);
 
         /// <summary>
         /// Download a file from the Web

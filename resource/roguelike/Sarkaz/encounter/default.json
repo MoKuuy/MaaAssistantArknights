@@ -65,8 +65,8 @@
         },
         {
             "name": "竣工仪式",
-            "option_num": 1,
-            "choose": 1,
+            "option_num": 2,
+            "choose": 2,
             "choices": [
                 {
                     "name": "我们是来参加研讨会的",
@@ -156,8 +156,8 @@
         },
         {
             "name": "一叶扁舟",
-            "option_num": 1,
-            "choose": 1,
+            "option_num": 2,
+            "choose": 2,
             "choices": [
                 {
                     "name": "与阿纳萨商量",
@@ -285,7 +285,7 @@
         {
             "name": "驮兽旅行家",
             "option_num": 3,
-            "choose": 1,
+            "choose": 3,
             "choices": [
                 {
                     "name": "与驮兽同行",
@@ -594,7 +594,8 @@
         {
             "name": "原初异途",
             "option_num": 4,
-            "choose": 4
+            "choose": 4,
+            "fallback_choices": [[3, 3]]
         },
         {
             "name": "巴别塔雇员",

@@ -1,6 +1,6 @@
 // <copyright file="StartUpSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,7 +10,10 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
+using JetBrains.Annotations;
+using MaaWpfGui.Configuration.Single.MaaTask;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Main;
@@ -18,6 +21,7 @@ using MaaWpfGui.Models.AsstTasks;
 using MaaWpfGui.Services;
 using MaaWpfGui.ViewModels.UI;
 using Newtonsoft.Json.Linq;
+using static MaaWpfGui.Main.AsstProxy;
 
 namespace MaaWpfGui.ViewModels.UserControl.TaskQueue;
 
@@ -44,10 +48,10 @@ public class StartUpSettingsUserControlModel : TaskViewModel
     }
 
     // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void AccountSwitchManualRun()
     {
-        Instances.TaskQueueViewModel.QuickSwitchAccount();
+        _ = Instances.TaskQueueViewModel.QuickSwitchAccount();
     }
 
     public override void ProcSubTaskMsg(AsstMsg msg, JObject details)
@@ -61,9 +65,34 @@ public class StartUpSettingsUserControlModel : TaskViewModel
     public override (AsstTaskType Type, JObject Params) Serialize()
     {
         var clientType = SettingsViewModel.GameSettings.ClientType;
+        var startGame = SettingsViewModel.GameSettings.StartGame;
         var accountName = clientType switch
         {
             "Official" or "Bilibili" => AccountName,
+            _ => string.Empty,
+        };
+
+        var task = new AsstStartUpTask()
+        {
+            ClientType = clientType,
+            StartGame = startGame,
+            AccountName = accountName,
+        };
+
+        return task.Serialize();
+    }
+
+    public override bool? SerializeTask(BaseTask baseTask, int? taskId = null)
+    {
+        if (baseTask is not StartUpTask startUp)
+        {
+            return null;
+        }
+
+        var clientType = SettingsViewModel.GameSettings.ClientType;
+        var accountName = clientType switch
+        {
+            "Official" or "Bilibili" => startUp.AccountName,
             _ => string.Empty,
         };
 
@@ -74,6 +103,13 @@ public class StartUpSettingsUserControlModel : TaskViewModel
             AccountName = accountName,
         };
 
-        return task.Serialize();
+        if (taskId is int id)
+        {
+            return Instances.AsstProxy.AsstSetTaskParamsEncoded(id, task);
+        }
+        else
+        {
+            return Instances.AsstProxy.AsstAppendTaskWithEncoding(TaskType.StartUp, task);
+        }
     }
 }

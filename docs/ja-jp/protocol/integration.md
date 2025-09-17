@@ -47,7 +47,7 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 // 対応するタスクのパラメータ
 {
     "enable": bool,              // このタスクを有効にするかどうか、オプション、デフォルトは true
-    "client_type": string,       // クライアントバージョン、オプション、デフォルトは空白
+    "client_type": string,       // クライアントバージョン（必須）
                                  // オプション: "Official" | "Bilibili" | "txwy" | "YoStarEN" | "YoStarJP" | "YoStarKR"
     "start_game_enabled": bool,  // クライアントを自動的に起動するかどうか、オプション, デフォルトはfalse
     "account_name": string       // アカウントの切り替え、オプション、デフォルトで切り替えしません
@@ -84,8 +84,11 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
     "medicine": int,            // 理性回復剤の最大使用数、オプション、デフォルトは 0
     "expiring_medicine": int,   // 48 時間以内に期限切れになった理性回復剤の最大使用数、オプション、デフォルトは 0
     "stone": int,               // 純正源石の最大使用数、オプション、デフォルトは 0
-    "times": int,               // 最大周回数、オプション、デフォルトは無限
+    "times": int,               // 最戦闘回数、オプション、デフォルトは無限
     "series": int,              // 連戦回数、オプション、1~6
+                                // -1  シリーズの切り替えを無効にするには
+                                // 0   現在利用可能なシリーズ数の最大数に自動的に切り替えるには、現在のサニティが6回未満の場合は、利用可能な最小回数を選択します.
+                                // 1~6 指定した回数に変更するには
     "drops": {                  // ドロップ数の指定、オプション、デフォルトは指定なし
         "30011": int,           // Key: item_ID; value: 素材の数。Keyは resource/item_index.json に記載されています
         "30062": int            // OR 組み合わせ
@@ -158,7 +161,7 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
                             // 10000 - シフト変更モードをカスタマイズし、ユーザー構成を読み取り、プロトコルドキュメント/インフラストシフト.md を参照してください
                             // 20000 - ローテーション: ワンキーローテーションモード。コントロールセンター、発電所、寮、オフィスをスキップします。他の施設はシフトを変更しませんが、基本的な操作は保持されます (ドローンの使用、応接室のロジックなど)
     "facility": [           // シフト対象施設（順序付け）、必須。動作中の編集はサポートされていません.
-        string,             // 施設名: "Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm"
+        string,             // 施設名: "Mfg" | "Trade" | "Power" | "Control" | "Reception" | "Office" | "Dorm" | "Processing" | "Training"
         ...
     ],
     "drones": string,       // ドローンの使用, オプション, デフォルトは "_NotUse"
@@ -183,6 +186,7 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 // 対応するタスクのパラメータ
 {
     "enable": bool,         // このタスクを有効にするかどうか、オプション、デフォルトは true
+    "visit_friends": bool,  // フレンドの基地を訪問してクレジットを獲得するかどうか。任意、デフォルト値は true
     "shopping": bool,       // 購買所から購入するかどうか、オプション、 デフォルトは false。 動作中に変更はできません。
     "buy_first": [          // アイテム購入の優先度、オプション。動作中に変更はできません。
         string,             // アイテム名。例 "招聘许可" (Recruitment Permit/求人票)、"龙门币" (LMD/龍門幣)、その他
@@ -191,9 +195,13 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
     "blacklist": [          // ブラックリスト、オプション。動作中に変更はできません。
         string,             // アイテム名。例 "加急许可" (Expedited Plan/緊急招集票)、"家具零件" (Furniture Part/家具パーツ)、その他
         ...
-    ]
-    "only_buy_discount": bool // 割引対象のアイテムだけを購入するかどうかは。これは2回目の購入の際にのみ適用されます。デフォルトは false。
-    "reserve_max_credit": bool // クレジットポイントが300未満になった場合に購入を停止するかどうかは。これは2回目の購入の際にのみ適用されます。デフォルトは false。
+    ],
+    "force_shopping_if_credit_full": bool,  // クレジットが上限に達した場合、ブラックリストを無視して購入するかどうか。任意、デフォルト値は false
+    "only_buy_discount": bool,              // 割引対象のアイテムだけを購入するかどうかは。これは2回目の購入の際にのみ適用されます。デフォルトは false。
+    "reserve_max_credit": bool,             // クレジットポイントが 300 未満になった場合に購入を停止するかどうかは。これは2回目の購入の際にのみ適用されます。デフォルトは false。
+    "credit_fight": bool,                   // サポートを借りて OF-1 を1回攻略し、翌日により多くのクレジットを獲得するかどうか。任意、デフォルト値は false
+    "formation_index": int                  // OF-1 実行時に使用する編成スロットのインデックス。任意指定可能、デフォルトは 0。
+                                            // 0～4 の整数で、0 は現在の編成を意味し、1～4 はそれぞれ第1～第4編成を表す
 }
 ```
 
@@ -215,10 +223,11 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
 {
     "enable": bool,  // このタスクを有効にするかどうか、省略可能、デフォルト値 true
     "theme": string, // テーマ、省略可能、デフォルト値 "Phantom"
-                     //   Phantom - 傀影と猩紅の血晶
-                     //   Mizuki  - 水月と蒼青の樹
-                     //   Sami    - 探索者の銀霜の果て
-                     //   Sarkaz  - サルカズの無尽の奇譚
+                     //   Phantom   - 傀影と猩紅の血晶
+                     //   Mizuki    - 水月と蒼青の樹
+                     //   Sami      - 探索者の銀霜の果て
+                     //   Sarkaz    - サルカズの無尽の奇譚
+                     //   JieGarden - 界园
     "mode": int,     // モード、省略可能、デフォルト値 0
                      //   0 - ポイント稼ぎ、より安定して層数を増やす
                      //   1 - 源石錠稼ぎ、1層で投資後終了
@@ -251,7 +260,16 @@ TaskId ASSTAPI AsstAppendTask(AsstHandle handle, const char* type, const char* p
         string,                         // 開幕でリスト内の全ての密文を持っている場合に開幕リセット成功とする；
         ...                             // 注意、このパラメータは「生活至上部隊」と同時に使用する必要がある。他の部隊では開幕報酬で密文を取得できない；
     ],
-    "start_with_two_ideas": bool,       // 凹 2 構想開局の有無（選択可能、デフォルト値：false）；テーマが Sarkaz で、モードが 4 の時のみ有効
+    "collectible_mode_start_list": {    // 開始時に取得したい報酬。任意項目。デフォルトはすべて false。モード 4 の場合のみ有効
+        "hot_water": bool,              // 魔法瓶（湯）報酬。お湯を沸かす機能のトリガー（共通）
+        "shield": bool,                 // シールド報酬。追加のHP相当（共通）
+        "ingot": bool,                  // 源石錠の報酬（共通）
+        "hope": bool,                   // 希望の報酬（共通。※JieGarden テーマでは無効）
+        "random": bool,                 // ランダム報酬オプション：全ての源石錠を消費してランダムなコレクションを入手（共通）
+        "key": bool,                    // 鍵の報酬。Mizuki テーマでのみ有効
+        "dice": bool,                   // サイコロの報酬。Mizuki テーマでのみ有効
+        "ideas": bool,                  // 2つの構想報酬。Sarkaz テーマでのみ有効
+    },
     "use_foldartal": bool,                    // 密文を使用するか、モード5ではデフォルト値 false、他のモードではデフォルト値 true；Samiテーマにのみ対応
     "check_collapsal_paradigms": bool,        // 取得した崩壊パラダイムを検査するか、モード5ではデフォルト値 true、他のモードではデフォルト値 false
     "double_check_collapsal_paradigms": bool, // 崩壊パラダイムの検査漏れ対策を行うか、モード5ではデフォルト値 true、他のモードではデフォルト値 false；

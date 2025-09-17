@@ -1,6 +1,6 @@
 // <copyright file="CopilotModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -72,20 +73,42 @@ public class CopilotModel : CopilotBase
         {
             count++;
             var localizedName = DataHelper.GetLocalizedCharacterName(oper.Name);
-            output.Add(($"{localizedName}, {LocalizationHelper.GetString("CopilotSkill")} {oper.Skill}", UiLogColor.Message));
+            var log = $"{localizedName} {LocalizationHelper.GetString("CopilotSkill")} {oper.Skill} {GetModuleInfo(oper.Requirements)}".Trim();
+            output.Add((log, UiLogColor.Message));
         }
 
         foreach (var group in Groups)
         {
             count++;
             var groupName = group.Name + ": ";
-            var operInfos = group.Opers.Select(oper => $"{DataHelper.GetLocalizedCharacterName(oper.Name)} {oper.Skill}").ToList();
+            var operInfos = group.Opers
+                .Select(oper => $"{DataHelper.GetLocalizedCharacterName(oper.Name)} {oper.Skill} {GetModuleInfo(oper.Requirements)}".Trim())
+                .ToList();
 
             output.Add((groupName + string.Join(" / ", operInfos), UiLogColor.Message));
         }
 
         output.Add((string.Format(LocalizationHelper.GetString("TotalOperatorsCount"), count), UiLogColor.Message));
         return output;
+    }
+
+    private static string GetModuleInfo(Requirements? req)
+    {
+        if (req is null || req.Module < 0)
+        {
+            return string.Empty;
+        }
+
+        // 模组编号 -1: 不切换模组 / 无要求, 0: 不使用模组, 1: 模组χ, 2: 模组γ, 3: 模组α, 4: 模组Δ
+        return req.Module switch
+        {
+            0 => $"{LocalizationHelper.GetString("CopilotWithoutModule")}",
+            1 => $"{LocalizationHelper.GetString("CopilotModule")} χ",
+            2 => $"{LocalizationHelper.GetString("CopilotModule")} γ",
+            3 => $"{LocalizationHelper.GetString("CopilotModule")} α",
+            4 => $"{LocalizationHelper.GetString("CopilotModule")} Δ",
+            _ => string.Empty,
+        };
     }
 
     public class Oper
@@ -274,10 +297,10 @@ public class CopilotModel : CopilotBase
         public int SkillLevel { get; set; }
 
         /// <summary>
-        /// Gets or sets 模组编号。可选，默认为 0。
+        /// Gets or sets 模组编号。可选，默认为 -1。
         /// </summary>
         [JsonProperty("module")]
-        public int Module { get; set; }
+        public int Module { get; set; } = -1;
 
         /// <summary>
         /// Gets or sets 潜能要求。可选，默认为 0。

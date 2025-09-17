@@ -1,6 +1,6 @@
 // <copyright file="AsstInfrastTask.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 using System.Collections.Generic;
 using MaaWpfGui.Services;
@@ -67,7 +68,7 @@ public class AsstInfrastTask : AsstBaseTask
     /// <summary>
     /// Gets or sets a value indicating whether 宿舍是否使用蹭信赖功能
     /// </summary>
-    public bool DormDormTrustEnabled { get; set; }
+    public bool DormTrustEnabled { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether 制造站搓玉是否补货
@@ -78,6 +79,11 @@ public class AsstInfrastTask : AsstBaseTask
     /// Gets or sets a value indicating whether 领取基建会客室留言板奖励
     /// </summary>
     public bool ReceptionMessageBoard { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether 启用线索交流
+    /// </summary>
+    public bool ReceptionClueExchange { get; set; } = true;
 
     /// <summary>
     /// Gets or sets 自定义配置文件路径
@@ -98,9 +104,10 @@ public class AsstInfrastTask : AsstBaseTask
             ["continue_training"] = ContinueTraining,
             ["threshold"] = DormThreshold,
             ["dorm_notstationed_enabled"] = DormFilterNotStationedEnabled,
-            ["dorm_trust_enabled"] = DormDormTrustEnabled,
+            ["dorm_trust_enabled"] = DormTrustEnabled,
             ["replenish"] = OriginiumShardAutoReplenishment,
             ["reception_message_board"] = ReceptionMessageBoard,
+            ["reception_clue_exchange"] = ReceptionClueExchange,
             ["mode"] = (int)Mode,
         };
 

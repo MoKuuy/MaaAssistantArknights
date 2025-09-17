@@ -1,6 +1,6 @@
 // <copyright file="SmtpNotificationProvider.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -117,18 +117,18 @@ namespace MaaWpfGui.Services.Notification
             var email = Email
                 .From(emailFrom)
                 .To(emailTo)
-                .Subject($"[MAA] {title}")
+                .Subject($"{title}")
                 .Body(_emailTemplate.Replace("{title}", title).Replace("{content}", content), true);
 
             var sendResult = await email.SendAsync();
 
             if (sendResult.Successful)
             {
-                _logger.Information($"Successfully sent Email notification to {emailTo}");
+                _logger.Information("Successfully sent Email notification to {EmailTo}", emailTo);
                 return true;
             }
 
-            _logger.Warning($"Failed to send Email notification to {emailTo}, {sendResult.ErrorMessages}");
+            _logger.Warning("Failed to send Email notification to {EmailTo}, {SendResultErrorMessages}", emailTo, sendResult.ErrorMessages);
             return false;
         }
 

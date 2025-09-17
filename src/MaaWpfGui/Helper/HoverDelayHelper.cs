@@ -1,6 +1,6 @@
 // <copyright file="HoverDelayHelper.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -15,7 +15,6 @@ using System;
 using System.Windows;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-
 
 namespace MaaWpfGui.Helper
 {

@@ -1,6 +1,6 @@
 // <copyright file="DragItemViewModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -12,6 +12,7 @@
 // </copyright>
 
 using System;
+using JetBrains.Annotations;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Models;
 using Stylet;
@@ -79,7 +80,7 @@ namespace MaaWpfGui.ViewModels
         private bool? _isCheckedWithNull;
 
         /// <summary>
-        /// Gets or sets a value indicating whether gets or sets whether the key is checked with null.
+        /// Gets or sets a value indicating whether the key is checked with null.
         /// </summary>
         public bool? IsCheckedWithNull
         {
@@ -93,7 +94,7 @@ namespace MaaWpfGui.ViewModels
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether gets or sets whether the key is checked.
+        /// Gets or sets a value indicating whether the key is checked.
         /// </summary>
         public bool IsChecked
         {
@@ -107,7 +108,7 @@ namespace MaaWpfGui.ViewModels
         /// <summary>
         /// Gets or sets the icon path.
         /// </summary>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public string IconPath
         {
             get => _iconPath;
@@ -119,7 +120,7 @@ namespace MaaWpfGui.ViewModels
         /// <summary>
         /// Gets or sets the token.
         /// </summary>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public string Token
         {
             get => _token;
@@ -131,7 +132,7 @@ namespace MaaWpfGui.ViewModels
         /// <summary>
         /// Gets or sets the running status.
         /// </summary>
-        // ReSharper disable once UnusedMember.Global
+        [UsedImplicitly]
         public string RunStatus
         {
             get => _runStatus;
@@ -141,7 +142,7 @@ namespace MaaWpfGui.ViewModels
         private bool _enableSetting;
 
         /// <summary>
-        /// Gets or sets a value indicating whether gets or sets whether the setting enabled.
+        /// Gets or sets a value indicating whether the setting enabled.
         /// </summary>
         public bool EnableSetting
         {
@@ -149,7 +150,7 @@ namespace MaaWpfGui.ViewModels
             set
             {
                 SetAndNotify(ref _enableSetting, value);
-                TaskSettingVisibilityInfo.Current.Set(OriginalName, value);
+                TaskSettingVisibilityInfo.Instance.Set(OriginalName, value);
             }
         }
     }

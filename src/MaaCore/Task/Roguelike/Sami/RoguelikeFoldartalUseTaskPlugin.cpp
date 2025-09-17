@@ -5,6 +5,7 @@
 #include "Controller/Controller.h"
 #include "Task/ProcessTask.h"
 #include "Utils/Logger.hpp"
+#include "Vision/Matcher.h"
 #include "Vision/OCRer.h"
 
 #include <set>
@@ -88,7 +89,8 @@ bool asst::RoguelikeFoldartalUseTaskPlugin::_run()
 
     auto foldartal_list = m_config->status().foldartal_list;
     Log.trace("All foldartal got yet:", foldartal_list);
-    auto filter = views::filter([&](const RoguelikeFoldartalCombination& usage) { return m_stage == usage.usage; });
+    auto filter =
+        std::views::filter([&](const RoguelikeFoldartalCombination& usage) { return m_stage == usage.usage; });
     for (const auto& comb : combination | filter) {
         if (need_exit()) {
             break;
@@ -112,7 +114,7 @@ void asst::RoguelikeFoldartalUseTaskPlugin::use_enable_pair(
             if (need_exit()) {
                 return;
             }
-            if (auto iter_up = ranges::find(list, up_board);
+            if (auto iter_up = std::ranges::find(list, up_board);
                 iter_up == list.end() || boards_to_skip.contains(up_board)) {
                 continue;
             }
@@ -122,7 +124,7 @@ void asst::RoguelikeFoldartalUseTaskPlugin::use_enable_pair(
                 if (need_exit()) {
                     return;
                 }
-                if (auto iter_down = ranges::find(list, down_board);
+                if (auto iter_down = std::ranges::find(list, down_board);
                     iter_down == list.end() || boards_to_skip.contains(down_board)) {
                     continue;
                 }
@@ -149,7 +151,7 @@ void asst::RoguelikeFoldartalUseTaskPlugin::use_enable_pair(
                     break;
                 }
                 if (result == UseBoardResult::UpBoardNotFound) {
-                    list.erase(ranges::find(list, up_board));
+                    list.erase(std::ranges::find(list, up_board));
                     Log.info("Up board not found! Delete up board:", up_board);
                     break;
                 }
@@ -160,14 +162,14 @@ void asst::RoguelikeFoldartalUseTaskPlugin::use_enable_pair(
                     continue;
                 }
                 if (result == UseBoardResult::DownBoardNotFound) {
-                    list.erase(ranges::find(list, down_board));
+                    list.erase(std::ranges::find(list, down_board));
                     Log.info("Down board not found! Delete down board:", down_board);
                     continue;
                 }
                 // 正常使用板子，用完删除上板子和下板子
                 if (result == UseBoardResult::UseBoardResultSuccess) {
-                    list.erase(ranges::find(list, up_board));
-                    list.erase(ranges::find(list, down_board));
+                    list.erase(std::ranges::find(list, up_board));
+                    list.erase(std::ranges::find(list, down_board));
                     Log.trace("Board pair used, up:", up_board, ", down:", down_board);
                     break;
                 }
@@ -175,7 +177,7 @@ void asst::RoguelikeFoldartalUseTaskPlugin::use_enable_pair(
         }
     };
 
-    ranges::for_each(usage.pairs, check_pair);
+    std::ranges::for_each(usage.pairs, check_pair);
 
     return;
 }
@@ -185,16 +187,22 @@ asst::RoguelikeFoldartalUseTaskPlugin::UseBoardResult
 {
     LogTraceFunction;
 
-    auto result = UseBoardResult::ClickFoldartalError;
-
     Log.trace("Try to use the board pair", up_board, down_board);
 
     if (!ProcessTask(*this, { m_config->get_theme() + "@Roguelike@Foldartal" }).run()) {
-        return result;
+        return UseBoardResult::ClickFoldartalError;
+    }
+
+    Matcher matcher(ctrler()->get_image());
+    matcher.set_task_info(m_config->get_theme() + "@Roguelike@FoldartalBack");
+    if (!matcher.analyze()) {
+        Log.error("Matcher Back failed");
+        return UseBoardResult::ClickFoldartalError;
     }
 
     swipe_to_top();
     // todo:插入一个滑动时顺便更新密文板overview,因为有的板子可以用两次
+    auto result = UseBoardResult::CanNotUseConfirm;
     if (!search_and_click_board(up_board)) {
         result = UseBoardResult::UpBoardNotFound;
     }
@@ -206,9 +214,6 @@ asst::RoguelikeFoldartalUseTaskPlugin::UseBoardResult
     }
     else if (ProcessTask(*this, { m_config->get_theme() + "@Roguelike@FoldartalUseConfirm" }).run()) {
         return UseBoardResult::UseBoardResultSuccess;
-    }
-    else {
-        result = UseBoardResult::CanNotUseConfirm;
     }
 
     ProcessTask(*this, { m_config->get_theme() + "@Roguelike@FoldartalBack" }).run();

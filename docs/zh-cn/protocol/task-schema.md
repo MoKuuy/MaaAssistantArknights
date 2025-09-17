@@ -5,7 +5,7 @@ icon: material-symbols:task
 
 # 任务流程协议
 
-`resource/tasks.json` 的使用方法及各字段说明
+`resource/tasks` 的使用方法及各字段说明
 
 ::: tip
 请注意 JSON 文件是不支持注释的，文本中的注释仅用于演示，请勿直接复制使用
@@ -24,6 +24,7 @@ icon: material-symbols:task
                                             //      - JustReturn:       不进行识别，直接执行 action
                                             //      - MatchTemplate:    匹配图片
                                             //      - OcrDetect:        文字识别
+                                            //      - FeatureMatch:     特征匹配
 
         "action": "ClickSelf",              // 可选项，表示识别到后的动作
                                             // 不填写时默认为 DoNothing
@@ -68,7 +69,7 @@ icon: material-symbols:task
                                             // 以 1280 * 720 为基准自动缩放；不填写时默认 [ 0, 0, 1280, 720 ]
                                             // 尽量填写，减小识别范围可以减少性能消耗，加快识别速度
 
-        "cache": false,                     // 可选项，表示该任务是否使用缓存，默认为 false;
+        "cache": true,                     // 可选项，表示该任务是否使用缓存，默认为 true;
                                             // 第一次识别到后，以后永远只在第一次识别到的位置进行识别，开启可大幅节省性能
                                             // 但仅适用于待识别目标位置完全不会变的任务，若待识别目标位置会变请设为 false
 
@@ -90,10 +91,15 @@ icon: material-symbols:task
         "specialParams": [int, ...],        // 某些特殊识别器需要的参数
                                             // 额外的，当 action 为 Swipe 时可选，[0] 表示 duration，[1] 表示 是否启用额外滑动
 
+        "highResolutionSwipeFix": false,    // 可选项，是否启用高分辨率滑动修复
+                                            // 现阶段应该只有关卡导航未使用 unity 滑动方式所以需要开启
+                                            // 默认为 false
+    
         /* 以下字段仅当 algorithm 为 MatchTemplate 时有效 */
 
         "template": "xxx.png",              // 可选项，要匹配的图片文件名，可以是字符串或字符串列表
                                             // 默认 "任务名.png"
+                                            // 模板图文件可放在 template 及其子文件夹下，加载时会进行递归搜索
 
         "templThreshold": 0.8,              // 可选项，图片模板匹配得分的阈值，超过阈值才认为识别到了，可以是数字或数字列表
                                             // 默认 0.8, 可根据日志查看实际得分是多少
@@ -103,7 +109,7 @@ icon: material-symbols:task
                                             // 然后设置为 [ 1, 255 ], 匹配的时候即忽略涂黑的部分
 
         "colorScales": [                    // 当 method 为 HSVCount 或 RGBCount 时有效且必选，数色掩码范围。 
-            [                               // list<array<array<int, 3>, 2> | array<int, 2>>
+            [                               // list<array<array<int, 3>, 2>> / list<array<int, 2>>
                 [23, 150, 40],              // 结构为 [[lower1, upper1], [lower2, upper2], ...]
                 [25, 230, 150]              //     内层为 int 时是灰度，
             ],                              //     　　为 array<int, 3> 时是三通道颜色，method 决定其是 RGB 或 HSV；
@@ -142,10 +148,34 @@ icon: material-symbols:task
         "withoutDet": false,                // 可选项，是否不使用检测模型
                                             // 不填写默认 false
 
+        /* 以下字段仅当 algorithm 为 OcrDetect 且 withoutDet 为 true 时有效 */
+
+        "useRaw": true,                     // 可选项，是否使用原图匹配
+                                            // 不填写默认 true，false 时为灰度匹配
+
+        "binThreshold": [140, 255],         // 可选项，二值化灰度阈值（默认 [140, 255]）
+                                            // 灰度值不处于范围的像素将被视为背景，排除在文字区域之外
+                                            // 最终保留 [lower, upper] 区间的像素作为文字前景
+
         /* 以下字段仅当 algorithm 为 JustReturn，action 为 Input 时有效 */
 
-        "inputText": "A string text."       // 必选项，要输入的文字内容，以字符串的形式
+        "inputText": "A string text.",      // 必选项，要输入的文字内容，以字符串的形式
+        
+        /* 以下字段仅当 algorithm 为 FeatureMatch 时有效 */
 
+        "template": "xxx.png",              // 可选项，要匹配的图片文件名，可以是字符串或字符串列表
+                                            // 默认 "任务名.png"
+
+        "count": 4,                         // 匹配的特征点的数量要求 (阈值), 默认值 = 4
+
+        "ratio": 0.6,                       // KNN 匹配算法的距离比值, [0 - 1.0], 越大则匹配越宽松, 更容易连线. 默认0.6
+
+        "detector": "SIFT",                 // 特征点检测器类型, 可选值为 SIFT, ORB, BRISK, KAZE, AKAZE, SURF; 默认值 = SIFT
+                                            // SIFT: 计算复杂度高，具有尺度不变性、旋转不变性。效果最好。
+                                            // ORB: 计算速度非常快，具有旋转不变性。但不具有尺度不变性。
+                                            // BRISK: 计算速度非常快，具有尺度不变性、旋转不变性。
+                                            // KAZE: 适用于2D和3D图像，具有尺度不变性、旋转不变性。
+                                            // AKAZE: 计算速度较快，具有尺度不变性、旋转不变性。
     }
 }
 ```

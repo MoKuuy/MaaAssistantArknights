@@ -28,6 +28,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!--<controls:TextBlock
@@ -37,28 +38,32 @@
             TextWrapping="Wrap" />-->
 
         <StackPanel Grid.Row="1">
-            <StackPanel
-                Margin="5"
-                HorizontalAlignment="Center"
-                Orientation="Horizontal">
-                <StackPanel>
-                    <controls:TextBlock Margin="0,0,0,5" Text="{DynamicResource ExternalNotificationEnabled}" />
-                    <hc:CheckComboBox
-                        Width="200"
-                        HorizontalContentAlignment="Center"
-                        hc:InfoElement.TitleWidth="0"
-                        hc:ListBoxAttach.SelectedItems="{Binding EnabledExternalNotificationProviders}"
-                        ItemsSource="{Binding ExternalNotificationProvidersShow}" />
-                </StackPanel>
-                <Button
-                    Margin="10,0,0,0"
-                    VerticalAlignment="Bottom"
-                    Command="{s:Action ExternalNotificationSendTest,
-                                       Target={x:Type viewModels:ExternalNotificationSettingsUserControlModel}}"
-                    Content="{DynamicResource ExternalNotificationSendTest}"
-                    IsEnabled="{c:Binding 'EnabledExternalNotificationProviderCount > 0'}" />
+            <controls:TextBlock Margin="0,0,0,5" Text="{DynamicResource ExternalNotificationEnabled}" />
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <hc:CheckComboBox
+                    Width="250"
+                    HorizontalContentAlignment="Center"
+                    hc:BorderElement.CornerRadius="4,0,0,4"
+                    hc:InfoElement.TitleWidth="0"
+                    hc:ListBoxAttach.SelectedItems="{Binding EnabledExternalNotificationProviders}"
+                    ItemsSource="{Binding ExternalNotificationProvidersShow}" />
+                <Grid>
+                    <Button
+                        hc:BorderElement.CornerRadius="0,4,4,0"
+                        BorderThickness="0,1,1,1"
+                        Content="{DynamicResource ExternalNotificationSendTest}"
+                        Foreground="Transparent"
+                        Visibility="{c:Binding 'EnabledExternalNotificationProviderCount == 0'}" />
+                    <Button
+                        hc:BorderElement.CornerRadius="0,4,4,0"
+                        BorderThickness="0,1,1,1"
+                        Command="{s:Action ExternalNotificationSendTest,
+                                           Target={x:Type viewModels:ExternalNotificationSettingsUserControlModel}}"
+                        Content="{DynamicResource ExternalNotificationSendTest}"
+                        IsEnabled="{c:Binding 'EnabledExternalNotificationProviderCount > 0'}" />
+                </Grid>
             </StackPanel>
-            <StackPanel HorizontalAlignment="Center">
+            <StackPanel HorizontalAlignment="Center" Visibility="{c:Binding 'EnabledExternalNotificationProviderCount > 0'}">
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
                     <CheckBox
                         Margin="5"
@@ -429,6 +434,39 @@
                     Text="{c:Binding QmsgBot}" />
 
             </Grid>
+        </StackPanel>
+
+        <StackPanel
+            Grid.Row="9"
+            Orientation="Vertical"
+            Visibility="{c:Binding CustomWebhookEnabled}">
+            <hc:Divider Content="{DynamicResource ExternalNotificationCustomWebhook}" />
+            <StackPanel Orientation="Horizontal">
+                <hc:TextBox
+                    x:Name="CustomWebhookUrl"
+                    Width="400"
+                    Height="30"
+                    Margin="10,10,0,10"
+                    hc:InfoElement.Title="{DynamicResource ExternalNotificationCustomWebhookUrl}"
+                    Text="{c:Binding CustomWebhookUrl}" />
+                <!--  整个相同控件占位，保持控件长度一致  -->
+                <controls:TooltipBlock Visibility="Hidden" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <hc:TextBox
+                    x:Name="CustomWebhookBody"
+                    Width="400"
+                    MinHeight="20"
+                    Margin="10,10,0,10"
+                    hc:InfoElement.Placeholder="{DynamicResource ExternalNotificationCustomWebhookPlaceholders}"
+                    hc:InfoElement.Title="{DynamicResource ExternalNotificationCustomWebhookBody}"
+                    AcceptsReturn="True"
+                    GotFocus="{s:Action CustomWebhookBodyGotFocus}"
+                    LostFocus="{s:Action CustomWebhookBodyLostFocus}"
+                    Text="{c:Binding CustomWebhookBody}"
+                    TextWrapping="Wrap" />
+                <controls:TooltipBlock TooltipText="{DynamicResource ExternalNotificationCustomWebhookPlaceholders}" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

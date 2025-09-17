@@ -44,27 +44,28 @@ jobs:
 
       - name: Checkout repository
         if: steps.check_push.outputs.is_pr != 'True'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
           persist-credentials: false
 
       - name: Setup python
         if: steps.check_push.outputs.is_pr != 'True'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
-      - name: Cache Python packages
-        id: cache_python
-        if: steps.check_push.outputs.is_pr != 'True' && always()
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.pythonLocation }}/lib/python3.11/site-packages
-          key: ${{ runner.os }}-pip-optimize-templates-${{ hashFiles('./tools/OptimizeTemplates/requirements.txt') }}
+      # - name: Cache Python packages
+      #   id: cache_python
+      #   if: steps.check_push.outputs.is_pr != 'True' && always()
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ${{ env.pythonLocation }}/lib/python3.11/site-packages
+      #     key: ${{ runner.os }}-pip-optimize-templates-${{ hashFiles('./tools/OptimizeTemplates/requirements.txt') }}
 
       - name: Install dependencies
-        if: steps.check_push.outputs.is_pr != 'True' && steps.cache_python.outputs.cache-hit != 'true'
+        # if: steps.check_push.outputs.is_pr != 'True' && steps.cache_python.outputs.cache-hit != 'true'
+        if: steps.check_push.outputs.is_pr != 'True'
         run: |
           pip install -r tools/OptimizeTemplates/requirements.txt
 
@@ -101,7 +102,7 @@ jobs:
           fi
 
       - name: Push changes
-        if: steps.check_push.outputs.is_pr != 'True' && steps.commit_changes.outputs.have_commits == 'True'
+        if: steps.check_push.outputs.is_pr != 'True' && steps.commit_changes.outputs.have_commits == 'True' && github.repository_owner == 'MaaAssistantArknights'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.MAA_RESOURCE_SYNC }}

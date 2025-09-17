@@ -93,10 +93,11 @@ std::optional<cv::Mat> MumuExtras::screencap()
 
 bool MumuExtras::load_mumu_library()
 {
+    auto new_lib_path = mumu_path_ / "nx_device/12.0/shell/sdk/external_renderer_ipc"; // MuMu 5.0 内测路径, 可能变更
     auto lib_path = mumu_path_ / "shell/sdk/external_renderer_ipc";
 
-    if (!load_library(lib_path)) {
-        LogError << "Failed to load library" << VAR(lib_path);
+    if (!load_library(new_lib_path) && !load_library(lib_path)) {
+        LogError << "Failed to load library" << VAR(new_lib_path) << "or" << VAR(lib_path);
         return false;
     }
 
@@ -198,7 +199,7 @@ bool MumuExtras::init_screencap()
         return false;
     }
 
-    display_buffer_.resize(display_width_ * display_height_ * 4);
+    display_buffer_.resize(static_cast<size_t>(display_width_) * display_height_ * 4);
 
     LogDebug << VAR(display_width_) << VAR(display_height_) << VAR(display_buffer_.size());
     return true;

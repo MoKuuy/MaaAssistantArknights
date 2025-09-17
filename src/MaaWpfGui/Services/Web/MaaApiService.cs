@@ -1,6 +1,6 @@
 // <copyright file="MaaApiService.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,7 +11,8 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
-using System;
+#nullable enable
+
 using System.IO;
 using System.Threading.Tasks;
 using MaaWpfGui.Constants;
@@ -23,14 +24,30 @@ namespace MaaWpfGui.Services.Web
 {
     public class MaaApiService : IMaaApiService
     {
-        private const string CacheDir = "cache/";
+        private static readonly string CacheDir = PathsHelper.BaseDir + "/cache/";
 
-        public async Task<JObject> RequestMaaApiWithCache(string api)
+        public async Task<JObject?> RequestMaaApiWithCache(string api)
         {
-            var url = MaaUrls.MaaApi + api;
+            return await RequestWithFallback(api, MaaUrls.MaaApi, MaaUrls.MaaApi2);
+        }
 
-            // await Instances.HttpService.GetStringAsync(new Uri(url));
-            var response = await ETagCache.FetchResponseWithEtag(url);
+        private async Task<JObject?> RequestWithFallback(string api, string primaryBaseUrl, string? fallbackBaseUrl = null)
+        {
+            var json = await TryRequest(api, primaryBaseUrl);
+            if (json != null || string.IsNullOrEmpty(fallbackBaseUrl))
+            {
+                return json;
+            }
+
+            return await TryRequest(api, fallbackBaseUrl);
+        }
+
+        private async Task<JObject?> TryRequest(string api, string baseUrl)
+        {
+            var url = baseUrl + api;
+            var cache = CacheDir + api;
+
+            var response = await ETagCache.FetchResponseWithEtag(url, !File.Exists(cache));
             if (response == null ||
                 response.StatusCode == System.Net.HttpStatusCode.NotModified ||
                 response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -46,9 +63,8 @@ namespace MaaWpfGui.Services.Web
 
             try
             {
-                var json = (JObject)JsonConvert.DeserializeObject(body);
-                var cache = CacheDir + api;
-                string directoryPath = Path.GetDirectoryName(cache);
+                var json = (JObject?)JsonConvert.DeserializeObject(body);
+                string? directoryPath = Path.GetDirectoryName(cache);
 
                 if (!Directory.Exists(directoryPath))
                 {
@@ -56,8 +72,7 @@ namespace MaaWpfGui.Services.Web
                 }
 
                 await File.WriteAllTextAsync(cache, body);
-
-                ETagCache.Set(response);
+                ETagCache.Set(response, url);
 
                 return json;
             }
@@ -67,7 +82,7 @@ namespace MaaWpfGui.Services.Web
             }
         }
 
-        public JObject LoadApiCache(string api)
+        public JObject? LoadApiCache(string api)
         {
             var cache = CacheDir + api;
             if (!File.Exists(cache))
@@ -77,7 +92,7 @@ namespace MaaWpfGui.Services.Web
 
             try
             {
-                return (JObject)JsonConvert.DeserializeObject(File.ReadAllText(cache));
+                return (JObject?)JsonConvert.DeserializeObject(File.ReadAllText(cache));
             }
             catch
             {

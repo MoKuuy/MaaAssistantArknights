@@ -1,6 +1,6 @@
 // <copyright file="AsstRecruitTask.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -31,7 +31,7 @@ public class AsstRecruitTask : AsstBaseTask
     public int RecruitTimes { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether gets or sets 是否刷新三星 Tags, 可选，默认false
+    /// Gets or sets a value indicating whether 是否刷新三星 Tags, 可选，默认false
     /// </summary>
     public bool Refresh { get; set; }
 
@@ -92,7 +92,7 @@ public class AsstRecruitTask : AsstBaseTask
     /// <summary>
     /// Gets or sets a value indicating whether 遇到小车词条时是否招募
     /// </summary>
-    public bool ChooseLevel1 { get; set; }
+    public bool NotChooseLevel1 { get; set; }
 
     /// <summary>
     /// Gets or sets 3 星招募时间
@@ -145,7 +145,7 @@ public class AsstRecruitTask : AsstBaseTask
             ["times"] = RecruitTimes,
             ["set_time"] = SetRecruitTime,
             ["expedite"] = UseExpedited,
-            ["skip_robot"] = !ChooseLevel1,
+            ["skip_robot"] = NotChooseLevel1,
             ["extra_tags_mode"] = SelectExtraTags,
             ["first_tags"] = JArray.FromObject(Level3FirstList),
             ["recruitment_time"] = new JObject

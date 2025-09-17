@@ -1,6 +1,6 @@
 // <copyright file="VersionUpdateViewModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 
 using System;
@@ -18,11 +19,13 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using MaaWpfGui.Constants;
+using MaaWpfGui.Constants.Enums;
 using MaaWpfGui.Extensions;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Main;
@@ -31,11 +34,13 @@ using MaaWpfGui.Services;
 using MaaWpfGui.States;
 using MaaWpfGui.Utilities;
 using MaaWpfGui.ViewModels.UserControl.Settings;
+using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Semver;
 using Serilog;
 using Stylet;
+using SearchOption = System.IO.SearchOption;
 
 namespace MaaWpfGui.ViewModels.UI;
 
@@ -171,7 +176,7 @@ public class VersionUpdateViewModel : Screen
     private const string InfoRequestUrl = "repos/MaaAssistantArknights/MaaAssistantArknights/releases/tags/";
     */
 
-    private const string MaaUpdateApi = "https://ota.maa.plus/MaaAssistantArknights/api/version/summary.json";
+    private const string MaaUpdateApi = "version/summary.json";
 
     private JObject? _latestJson;
     private JObject? _assetsObject;
@@ -186,9 +191,7 @@ public class VersionUpdateViewModel : Screen
     /// <returns>操作成功返回 <see langword="true"/>，反之则返回 <see langword="false"/>。</returns>
     public bool CheckAndUpdateNow()
     {
-        if (UpdateTag == string.Empty
-            || UpdatePackageName == string.Empty
-            || !File.Exists(UpdatePackageName))
+        if (UpdateTag == string.Empty || UpdatePackageName == string.Empty || !File.Exists(UpdatePackageName))
         {
             return false;
         }
@@ -200,8 +203,8 @@ public class VersionUpdateViewModel : Screen
                 .ShowUpdateVersion(row: 2);
         }
 
-        string curDir = Directory.GetCurrentDirectory();
-        string extractDir = Path.Combine(curDir, "NewVersionExtract");
+        string curDir = PathsHelper.BaseDir;
+        string extractDir = Path.Combine(curDir, "NewVersionExtract"); // 新版本解压的路径
         string oldFileDir = Path.Combine(curDir, ".old");
 
         // 解压
@@ -228,13 +231,14 @@ public class VersionUpdateViewModel : Screen
         }
 
         string removeListFile = Path.Combine(extractDir, "removelist.txt");
+        string mirrorChyanChangeFile = Path.Combine(extractDir, "changes.json");
+        bool isOTAPackage = File.Exists(removeListFile) || File.Exists(mirrorChyanChangeFile);
         string[] removeList = [];
         if (File.Exists(removeListFile))
         {
             removeList = File.ReadAllLines(removeListFile);
         }
 
-        string mirrorChyanChangeFile = Path.Combine(extractDir, "changes.json");
         if (File.Exists(mirrorChyanChangeFile))
         {
             try
@@ -245,7 +249,7 @@ public class VersionUpdateViewModel : Screen
             }
             catch (Exception e)
             {
-                _logger.Error($"parse mirrorChyan changes.json error: {e.Message}");
+                _logger.Error("parse mirrorChyan changes.json error: {EMessage}", e.Message);
             }
         }
 
@@ -279,10 +283,30 @@ public class VersionUpdateViewModel : Screen
                 }
                 catch (Exception e)
                 {
-                    _logger.Error($"move file error, path: {path}, moveTo: {moveTo}, error: {e.Message}");
+                    _logger.Error("move file error, path: {Path}, moveTo: {MoveTo}, error: {EMessage}", path, moveTo, e.Message);
                     throw;
                 }
             }
+        }
+        else if (!isOTAPackage)
+        {
+            List<Task> deleteTasks = [];
+            foreach (var dir in Directory.GetDirectories(extractDir))
+            {
+                deleteTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        FileSystem.DeleteDirectory(dir.Replace(extractDir, curDir), UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    }
+                    catch
+                    {
+                        _logger.Error("delete directory error, dir: {Dir}", dir);
+                    }
+                }));
+            }
+
+            Task.WaitAll([.. deleteTasks]);
         }
 
         Directory.CreateDirectory(oldFileDir);
@@ -321,7 +345,7 @@ public class VersionUpdateViewModel : Screen
             }
             catch (Exception e)
             {
-                _logger.Error($"move file error, file name: {file}, error: {e.Message}");
+                _logger.Error("move file error, file name: {File}, error: {EMessage}", file, e.Message);
                 throw;
             }
         }
@@ -343,7 +367,7 @@ public class VersionUpdateViewModel : Screen
             }
             catch (Exception e)
             {
-                _logger.Error($"delete file error, filePath: {filePath}, error: {e.Message}, try to backup.");
+                _logger.Error("delete file error, filePath: {FilePath}, error: {EMessage}, try to backup.", filePath, e.Message);
                 int index = 0;
                 string currentDate = DateTime.Now.ToString("yyyyMMddHHmm");
                 string backupFilePath = $"{filePath}.{currentDate}.{index}";
@@ -360,7 +384,7 @@ public class VersionUpdateViewModel : Screen
                 }
                 catch (Exception e1)
                 {
-                    _logger.Error($"move file error, path: {filePath}, moveTo: {backupFilePath}, error: {e1.Message}");
+                    _logger.Error("move file error, path: {FilePath}, moveTo: {BackupFilePath}, error: {E1Message}", filePath, backupFilePath, e1.Message);
                     throw;
                 }
             }
@@ -434,16 +458,6 @@ public class VersionUpdateViewModel : Screen
         MirrorChyan,
     }
 
-    // ReSharper disable once IdentifierTypo
-    // ReSharper disable once UnusedMember.Global
-    public enum Downloader
-    {
-        /// <summary>
-        /// 原生下载器
-        /// </summary>
-        Native,
-    }
-
     private bool _doNotShowUpdate = Convert.ToBoolean(ConfigurationHelper.GetGlobalValue(ConfigurationKeys.VersionUpdateDoNotShowUpdate, bool.FalseString));
 
     /// <summary>
@@ -482,6 +496,17 @@ public class VersionUpdateViewModel : Screen
 
             if (!IsDebugVersion())
             {
+                if (SettingsViewModel.VersionUpdateSettings.UpdateSource == "MirrorChyan" && string.IsNullOrEmpty(SettingsViewModel.VersionUpdateSettings.MirrorChyanCdk))
+                {
+                    _ = Task.Run(() =>
+                        MessageBoxHelper.Show(
+                            LocalizationHelper.GetString("MirrorChyanSelectedButNoCdk"),
+                            "cdk is empty!",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning,
+                            ok: LocalizationHelper.GetString("Ok")));
+                }
+
                 await VersionUpdateAndAskToRestartAsync();
                 await ResourceUpdater.ResourceUpdateAndReloadAsync();
             }
@@ -500,7 +525,13 @@ public class VersionUpdateViewModel : Screen
     /// <returns>Task</returns>
     public async Task VersionUpdateAndAskToRestartAsync()
     {
-        if (await CheckAndDownloadVersionUpdate() == CheckUpdateRetT.OK)
+        if (SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates)
+        {
+            return;
+        }
+
+        var ret = await CheckAndDownloadVersionUpdate();
+        if (ret == CheckUpdateRetT.OK)
         {
             _ = AskToRestart();
         }
@@ -512,22 +543,28 @@ public class VersionUpdateViewModel : Screen
     /// <returns>操作成功返回 <see langword="true"/>，反之则返回 <see langword="false"/>。</returns>
     public async Task<CheckUpdateRetT> CheckAndDownloadVersionUpdate()
     {
-        SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates = true;
-        var (checkRet, source) = await CheckUpdate();
-        if (checkRet != CheckUpdateRetT.OK)
+        try
+        {
+            SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates = true;
+
+            var (checkRet, source) = await CheckUpdate();
+
+            if (checkRet != CheckUpdateRetT.OK)
+            {
+                return checkRet;
+            }
+
+            return source switch
+            {
+                AppUpdateSource.MaaApi => await HandleUpdateFromMaaApi(),
+                AppUpdateSource.MirrorChyan => await HandleUpdateFromMirrorChyan(),
+                _ => CheckUpdateRetT.UnknownError,
+            };
+        }
+        finally
         {
             SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates = false;
-            return checkRet;
         }
-
-        var ret = source switch
-        {
-            AppUpdateSource.MaaApi => await HandleUpdateFromMaaApi(),
-            AppUpdateSource.MirrorChyan => await HandleUpdateFromMirrorChyan(),
-            _ => CheckUpdateRetT.UnknownError,
-        };
-        SettingsViewModel.VersionUpdateSettings.IsCheckingForUpdates = false;
-        return ret;
     }
 
     private async Task<CheckUpdateRetT> HandleUpdateFromMaaApi()
@@ -630,6 +667,7 @@ public class VersionUpdateViewModel : Screen
         if (latencies[selected] < 0)
         {
             _logger.Error("All mirrors are not available");
+            OutputDownloadProgress(downloading: false, output: LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
             return CheckUpdateRetT.NetworkError;
         }
 
@@ -644,10 +682,10 @@ public class VersionUpdateViewModel : Screen
         {
             OutputDownloadProgress(downloading: false, output: LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
             {
-                var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
+                using var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
                 toast.AppendContentText(LocalizationHelper.GetString("NewVersionDownloadFailedDesc"))
-                     .AddButton(LocalizationHelper.GetString("NewVersionFoundButtonGoWebpage"), ToastNotification.GetActionTagForOpenWeb(UpdateUrl))
-                     .Show();
+                    .AddButton(LocalizationHelper.GetString("NewVersionFoundButtonGoWebpage"), ToastNotification.GetActionTagForOpenWeb(UpdateUrl))
+                    .Show();
             }
 
             return CheckUpdateRetT.NoNeedToUpdate;
@@ -657,7 +695,7 @@ public class VersionUpdateViewModel : Screen
 
         string? ComparableHash(string version)
         {
-            if (IsStdVersion(version))
+            if (IsStdVersion(version) || IsBetaVersion(version))
             {
                 return version;
             }
@@ -715,7 +753,7 @@ public class VersionUpdateViewModel : Screen
 
         if (!string.IsNullOrEmpty(text))
         {
-            toast.AddButton(text, ToastNotification.GetActionTagForOpenWeb(UpdateUrl));
+            toast.AddButton(text, ToastNotification.GetActionTagForOpenWeb(globalSource ? UpdateUrl : MaaUrls.MirrorChyanManualUpdate));
         }
 
         toast.ShowUpdateVersion();
@@ -733,13 +771,14 @@ public class VersionUpdateViewModel : Screen
         SettingsViewModel.VersionUpdateSettings.NewVersionFoundInfo = $"{LocalizationHelper.GetString("NewVersionFoundTitle")}: {UpdateTag}";
 
         bool goDownload = SettingsViewModel.VersionUpdateSettings.AutoDownloadUpdatePackage;
+
+        ShowUpdateInfo(true, LocalizationHelper.GetString("NewVersionFoundButtonGoWebpage"), false);
+
         if (!goDownload)
         {
             OutputDownloadProgress(string.Empty);
             return CheckUpdateRetT.NoNeedToUpdate;
         }
-
-        ShowUpdateInfo(true, null, false);
 
         UpdatePackageName = "MirrorChyanApp" + _mirrorcVersionName + ".zip";
         var downloaded = await DownloadFromMirrorChyan(_mirrorcDownloadUrl,
@@ -753,7 +792,7 @@ public class VersionUpdateViewModel : Screen
         {
             OutputDownloadProgress(downloading: false, output: LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
             {
-                var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
+                using var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionDownloadFailedTitle"));
                 toast.AppendContentText(LocalizationHelper.GetString("NewVersionDownloadFailedDesc"))
                      .Show();
             }
@@ -761,6 +800,7 @@ public class VersionUpdateViewModel : Screen
             return CheckUpdateRetT.NoNeedToUpdate;
         }
 
+        AchievementTrackerHelper.Instance.Unlock(AchievementIds.MirrorChyanFirstUse);
         return CheckUpdateRetT.OK;
     }
 
@@ -804,7 +844,7 @@ public class VersionUpdateViewModel : Screen
             try
             {
                 var ret = await CheckUpdateByMirrorChyan();
-                if (ret is CheckUpdateRetT.OK or CheckUpdateRetT.AlreadyLatest or CheckUpdateRetT.NoMirrorChyanCdk)
+                if (ret is CheckUpdateRetT.OK or CheckUpdateRetT.AlreadyLatest)
                 {
                     return (ret, AppUpdateSource.MirrorChyan);
                 }
@@ -829,16 +869,11 @@ public class VersionUpdateViewModel : Screen
 
     private async Task<CheckUpdateRetT> CheckUpdateByMaaApi()
     {
-        string? response = await Instances.HttpService.GetStringAsync(new Uri(MaaUpdateApi)).ConfigureAwait(false);
+        JObject json = await Instances.MaaApiService.RequestMaaApiWithCache(MaaUpdateApi);
 
-        if (string.IsNullOrEmpty(response))
+        if (json is null)
         {
             _logger.Error("Failed to get update info from Maa API.");
-            return CheckUpdateRetT.FailedToGetInfo;
-        }
-
-        if (JsonConvert.DeserializeObject(response) is not JObject json)
-        {
             return CheckUpdateRetT.FailedToGetInfo;
         }
 
@@ -850,30 +885,21 @@ public class VersionUpdateViewModel : Screen
         };
 
         var latestVersion = json[versionType]?["version"]?.ToString();
-        var detailUrl = json[versionType]?["detail"]?.ToString();
 
         latestVersion ??= string.Empty;
-        detailUrl ??= string.Empty;
 
         if (!NeedToUpdate(latestVersion))
         {
             return CheckUpdateRetT.AlreadyLatest;
         }
 
-        return await GetVersionDetailsByMaaApi(detailUrl);
+        return await GetVersionDetailsByMaaApi(versionType);
     }
 
-    private async Task<CheckUpdateRetT> GetVersionDetailsByMaaApi(string url)
+    private async Task<CheckUpdateRetT> GetVersionDetailsByMaaApi(string versionType)
     {
-        string? response = await Instances.HttpService.GetStringAsync(new Uri(url)).ConfigureAwait(false);
-
-        if (string.IsNullOrEmpty(response))
-        {
-            _logger.Error("Failed to get update info from Maa API.");
-            return CheckUpdateRetT.FailedToGetInfo;
-        }
-
-        if (JsonConvert.DeserializeObject(response) is not JObject json)
+        var json = await Instances.MaaApiService.RequestMaaApiWithCache($"version/{versionType}.json");
+        if (json is null)
         {
             return CheckUpdateRetT.FailedToGetInfo;
         }
@@ -936,6 +962,10 @@ public class VersionUpdateViewModel : Screen
         if (_assetsObject == null && fullPackage != null)
         {
             _assetsObject = fullPackage;
+            _logger.Warning("No OTA package found, but full package found.");
+            using var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionNoOtaPackage"));
+            toast.Show(30);
+            Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("NewVersionNoOtaPackage"), UiLogColor.Warning);
         }
 
         return CheckUpdateRetT.OK;
@@ -955,8 +985,16 @@ public class VersionUpdateViewModel : Screen
 
         var url = $"{MaaUrls.MirrorChyanAppUpdate}?current_version={_curVersion}&cdk={cdk}&user_agent=MaaWpfGui&os=win&arch={arch}&channel={channel}&sp_id={spid}";
 
-        var response = await Instances.HttpService.GetAsync(new(url), logQuery: false);
-        _logger.Information($"current_version: {_curVersion}, cdk: {cdk.Mask()}, arch: {arch}, channel: {channel}");
+        HttpResponseMessage? response = null;
+        try
+        {
+            response = await Instances.HttpService.GetAsync(new(url), uriPartial: UriPartial.Path);
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e, "Failed to send GET request to {Uri}", new Uri(url).GetLeftPart(UriPartial.Path));
+            _logger.Information("current_version: {CurVersion}, cdk: {Mask}, arch: {Arch}, channel: {Channel}", _curVersion, cdk.Mask(), arch, channel);
+        }
 
         if (response is null)
         {
@@ -965,7 +1003,7 @@ public class VersionUpdateViewModel : Screen
         }
 
         var jsonStr = await response.Content.ReadAsStringAsync();
-        _logger.Information(jsonStr);
+        _logger.Information("{JsonStr}", jsonStr);
         JObject? data = null;
         try
         {
@@ -973,7 +1011,7 @@ public class VersionUpdateViewModel : Screen
         }
         catch (Exception ex)
         {
-            _logger.Error("Failed to deserialize json: " + ex.Message);
+            _logger.Error(ex, "Failed to deserialize json");
         }
 
         if (data is null)
@@ -981,29 +1019,42 @@ public class VersionUpdateViewModel : Screen
             return CheckUpdateRetT.UnknownError;
         }
 
-        var errorCode = data["code"]?.ToObject<Enums.MirrorChyanErrorCode>() ?? Enums.MirrorChyanErrorCode.Undivided;
-        if (errorCode != Enums.MirrorChyanErrorCode.Success)
+        var mirrorChyanCdkExpired = data["data"]?["cdk_expired_time"]?.ToObject<long?>();
+
+        if (mirrorChyanCdkExpired.HasValue)
+        {
+            SettingsViewModel.VersionUpdateSettings.MirrorChyanCdkExpiredTime = mirrorChyanCdkExpired.Value;
+            SettingsViewModel.VersionUpdateSettings.MirrorChyanCdkFetchFailed = false;
+        }
+        else
+        {
+            SettingsViewModel.VersionUpdateSettings.MirrorChyanCdkFetchFailed = true;
+        }
+
+        var errorCode = data["code"]?.ToObject<MirrorChyanErrorCode>() ?? MirrorChyanErrorCode.Undivided;
+        if (errorCode != MirrorChyanErrorCode.Success)
         {
             switch (errorCode)
             {
-                case Enums.MirrorChyanErrorCode.KeyExpired:
+                case MirrorChyanErrorCode.KeyExpired:
                     ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanCdkExpired"));
                     break;
-                case Enums.MirrorChyanErrorCode.KeyInvalid:
+                case MirrorChyanErrorCode.KeyInvalid:
                     ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanCdkInvalid"));
+                    AchievementTrackerHelper.Instance.Unlock(AchievementIds.MirrorChyanCdkError);
                     break;
-                case Enums.MirrorChyanErrorCode.ResourceQuotaExhausted:
+                case MirrorChyanErrorCode.ResourceQuotaExhausted:
                     ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanCdkQuotaExhausted"));
                     break;
-                case Enums.MirrorChyanErrorCode.KeyMismatched:
+                case MirrorChyanErrorCode.KeyMismatched:
                     ToastNotification.ShowDirect(LocalizationHelper.GetString("MirrorChyanCdkMismatched"));
                     break;
-                case Enums.MirrorChyanErrorCode.InvalidParams:
-                case Enums.MirrorChyanErrorCode.ResourceNotFound:
-                case Enums.MirrorChyanErrorCode.InvalidOs:
-                case Enums.MirrorChyanErrorCode.InvalidArch:
-                case Enums.MirrorChyanErrorCode.InvalidChannel:
-                case Enums.MirrorChyanErrorCode.Undivided:
+                case MirrorChyanErrorCode.InvalidParams:
+                case MirrorChyanErrorCode.ResourceNotFound:
+                case MirrorChyanErrorCode.InvalidOs:
+                case MirrorChyanErrorCode.InvalidArch:
+                case MirrorChyanErrorCode.InvalidChannel:
+                case MirrorChyanErrorCode.Undivided:
                     ToastNotification.ShowDirect(data["msg"]?.ToString() ?? LocalizationHelper.GetString("GameResourceFailed"));
                     break;
             }
@@ -1022,8 +1073,16 @@ public class VersionUpdateViewModel : Screen
             return CheckUpdateRetT.AlreadyLatest;
         }
 
+        if (data["data"]?["update_type"]?.ToObject<string>() == "full")
+        {
+            using var toast = new ToastNotification(LocalizationHelper.GetString("NewVersionNoOtaPackage"));
+            toast.Show(30);
+            _logger.Warning("No OTA package found, but full package found.");
+            Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("NewVersionNoOtaPackage"), UiLogColor.Warning);
+        }
+
         // 到这里已经确定有新版本了
-        _logger.Information($"New version found: {version}");
+        _logger.Information("New version found: {Version}", version);
 
         _mirrorcVersionName = version;
         _mirrorcReleaseNote = data["data"]?["release_note"]?.ToString();
@@ -1047,7 +1106,7 @@ public class VersionUpdateViewModel : Screen
 
         bool curParsed = SemVersion.TryParse(_curVersion, SemVersionStyles.AllowLowerV, out var curVersionObj);
         bool latestPared = SemVersion.TryParse(latestVersion, SemVersionStyles.AllowLowerV, out var latestVersionObj);
-        if (curParsed && latestPared)
+        if (curParsed && latestPared && curVersionObj != null && latestVersionObj != null)
         {
             return curVersionObj.CompareSortOrderTo(latestVersionObj) < 0;
         }
@@ -1063,7 +1122,6 @@ public class VersionUpdateViewModel : Screen
     /// <returns>操作成功返回 true，反之则返回 false</returns>
     private static async Task<bool> DownloadGithubAssets(string url, JObject assetsObject)
     {
-        _logItemViewModels = Instances.TaskQueueViewModel.LogItemViewModels;
         try
         {
             return await Instances.HttpService.DownloadFileAsync(
@@ -1080,7 +1138,6 @@ public class VersionUpdateViewModel : Screen
 
     private static async Task<bool> DownloadFromMirrorChyan(string url, string filename)
     {
-        _logItemViewModels = Instances.TaskQueueViewModel.LogItemViewModels;
         try
         {
             return await Instances.HttpService.DownloadFileAsync(
@@ -1110,13 +1167,25 @@ public class VersionUpdateViewModel : Screen
 
     private static bool _globalSource = true;
 
-    private static void OutputDownloadProgress(string output, bool downloading = true, bool? globalSource = null)
+    public static void OutputDownloadProgress(string output, bool downloading = true, bool? globalSource = null)
     {
         globalSource ??= _globalSource;
         _globalSource = globalSource.Value;
         if (_logItemViewModels == null)
         {
-            return;
+            try
+            {
+                _logItemViewModels = Instances.TaskQueueViewModel.LogItemViewModels;
+            }
+            catch
+            {
+                return;
+            }
+
+            if (_logItemViewModels == null)
+            {
+                return;
+            }
         }
 
         string fullText;
@@ -1155,6 +1224,7 @@ public class VersionUpdateViewModel : Screen
 
     public bool IsDebugVersion(string? version = null)
     {
+        // return false;
         version ??= _curVersion;
 
         // match case 1: DEBUG VERSION
@@ -1189,7 +1259,29 @@ public class VersionUpdateViewModel : Screen
             return false;
         }
 
-        return !IsNightlyVersion(semVersion);
+        return !semVersion.IsPrerelease;
+    }
+
+    public bool IsBetaVersion(string? version = null)
+    {
+        version ??= _curVersion;
+
+        if (IsDebugVersion(version))
+        {
+            return false;
+        }
+
+        if (version.StartsWith('c') || version.StartsWith("20") || version.Contains("Local"))
+        {
+            return false;
+        }
+
+        if (!SemVersion.TryParse(version, SemVersionStyles.AllowLowerV, out var semVersion))
+        {
+            return false;
+        }
+
+        return semVersion.IsPrerelease && !IsNightlyVersion(semVersion);
     }
 
     public static bool IsNightlyVersion(SemVersion version)

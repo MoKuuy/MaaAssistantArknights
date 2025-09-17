@@ -9,7 +9,7 @@ dir:
 
 ::: center
 
-![MAA Logo](/images/maa-logo_512x512.png =256x256)
+![MAA Logo =256x256](/images/maa-logo_512x512.png)
 
 <!-- markdownlint-restore -->
 
@@ -96,11 +96,7 @@ MAA 的意思是 MAA Assistant Arknights
 
 ### 多語言 (i18n)
 
-MAA 支援多國語言，並使用 Weblate 進行在地化管理。如果您通曉多門語言，歡迎前往 [MAA Weblate](https://weblate.maa-org.net) 協助我們進行翻譯。
-
 MAA 以中文（簡體）為第一語言，翻譯詞條皆以中文（簡體）為準。
-
-[![Weblate](https://weblate.maa-org.net/widget/maa/wpf-gui/multi-auto.svg)](https://weblate.maa-org.net/engage/maa/)
 
 ## 致謝
 
@@ -146,7 +142,7 @@ MAA 以中文（簡體）為第一語言，翻譯詞條皆以中文（簡體）�
 1. 下載預構建的第三方庫
 
     ```cmd
-    python maadeps-download.py
+    python tools/maadeps-download.py
     ```
 
 2. 使用 Visual Studio 2022 打開 `MAA.sln`，右鍵 `MaaWpfGui`，設為啟動項目
@@ -187,7 +183,7 @@ MAA 以中文（簡體）為第一語言，翻譯詞條皆以中文（簡體）�
 
 ## 聲明
 
-- 本軟體使用 [GNU Affero General Public License v3.0 only](https://spdx.org/licenses/AGPL-3.0-only.html) 開源。
+- 本軟體使用 [GNU Affero General Public License v3.0 only](https://spdx.org/licenses/AGPL-3.0-only.html) 開源，並附帶額外 [用戶協議](https://github.com/MaaAssistantArknights/MaaAssistantArknights/blob/dev/terms-of-service.md)。
 - 本軟體 logo 並非使用 AGPL 3.0 協議開源，[耗毛](https://weibo.com/u/3251357314)、vie 兩位畫師及軟體全體開發者保留所有權利。不得以 AGPL 3.0 協議已授權為由在未經授權的情況下使用本軟體 logo，不得在未經授權的情況下將本軟體 logo 用於任何商業用途。
 - 本軟體開源、免費，僅供學習交流使用。若您遇到商家使用本軟體進行代練並收費，可能是設備與時間等費用，產生的問題及後果與本軟體無關。
 
@@ -197,7 +193,7 @@ MAA 以中文（簡體）為第一語言，翻譯詞條皆以中文（簡體）�
 
 ## 廣告
 
-用戶交流 QQ 群：[MAA 使用 & 粥遊交流 QQ 群](https://ota.maa.plus/MaaAssistantArknights/api/qqgroup/index.html)  
+用戶交流 QQ 群：[MAA 使用 & 粥遊交流 QQ 群](https://api.maa.plus/MaaAssistantArknights/api/qqgroup/index.html)  
 Discord 伺服器：[Discord](https://discord.gg/23DfZ9uA4V)  
 用戶交流 TG 群：[Telegram 群](https://t.me/+Mgc2Zngr-hs3ZjU1)  
 自動戰鬥 JSON 作業分享：[prts.plus](https://prts.plus) 或 [抄作業.com](http://抄作業.com)  

@@ -1,6 +1,6 @@
 // <copyright file="GuiSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -16,14 +16,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using MaaWpfGui.Configuration;
+using MaaWpfGui.Configuration.Factory;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
 using MaaWpfGui.Main;
 using MaaWpfGui.Utilities.ValueType;
 using MaaWpfGui.ViewModels.UI;
 using Stylet;
-using DarkModeType = MaaWpfGui.Configuration.GUI.DarkModeType;
+using DarkModeType = MaaWpfGui.Configuration.Global.GUI.DarkModeType;
 
 namespace MaaWpfGui.ViewModels.UserControl.Settings;
 

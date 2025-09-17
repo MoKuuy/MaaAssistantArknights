@@ -333,7 +333,13 @@ address = "127.0.0.1:7777" # 如果你需要的话，你可以覆盖预设的地
 
 目前只有 `MuMuPro` 一个模拟器的预设，如果有其他常用模拟器的预设，欢迎提交 issue 或者 PR。
 
-此处有一个特殊的预设 `PlayCover`，其用于在 macOS 上连接直接通过 `PlayCover` 原生运行的游戏客户端。这种情况下不需要指定 `adb_path` 且 `address` 不是 `adb` l连接的地址而是 `PlayTools` 的地址，具体使用参见 [PlayCover 支持文档][playcover-doc].
+#### 特殊预设
+
+目前预配置了两种预设，为 `PlayCover (MacOS)`, `Waydroid (Linux)`
+
+- `PlayCover`用于在 macOS 上连接直接通过 `PlayCover` 原生运行的游戏客户端。这种情况下不需要指定 `adb_path` 且 `address` 不是 `adb` 连接的地址而是 `PlayTools` 的地址，具体使用参见 [PlayCover 支持文档][playcover-doc].
+
+- `Waydroid`用于在 Linux 上连接直接通过 `Waydroid` 原生运行的游戏客户端。这种情况下仍需要指定 `adb_path`，具体使用参见 [Waydroid 支持文档][waydroid-doc].
 
 ### 资源配置
 
@@ -463,8 +469,9 @@ passphrase = "password"       # ssh 密钥的密码
 [task-types]: ../../protocol/integration.md#任务类型一览
 [emulator-ports]: ../../manual/connection.md#获取端口号
 [playcover-doc]: ../../manual/device/macos.md#✅-playcover-原生运行最流畅-🚀
+[waydroid-doc]: ../../manual/device/linux.md#✅-waydroid
 [example-config]: https://github.com/MaaAssistantArknights/maa-cli/blob/main/crates/maa-cli/config_examples
-[wangl-cc-dotfiles]: https://github.com/wangl-cc/dotfiles/tree/master/.config/maa
+[wangl-cc-dotfiles]: https://github.com/wangl-cc/dotfiles/tree/main/home/dot_config/maa
 [schema-dir]: https://github.com/MaaAssistantArknights/maa-cli/blob/main/crates/maa-cli/schemas/
 [task-schema]: https://github.com/MaaAssistantArknights/maa-cli/blob/main/crates/maa-cli/schemas/task.schema.json
 [asst-schema]: https://github.com/MaaAssistantArknights/maa-cli/blob/main/crates/maa-cli/schemas/asst.schema.json

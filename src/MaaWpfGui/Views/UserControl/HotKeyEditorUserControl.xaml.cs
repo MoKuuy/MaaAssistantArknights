@@ -1,6 +1,6 @@
 // <copyright file="HotKeyEditorUserControl.xaml.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -10,6 +10,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY
 // </copyright>
+
 #nullable enable
 
 using System.Windows;
@@ -18,12 +19,16 @@ using MaaWpfGui.Services.HotKeys;
 
 namespace MaaWpfGui.Views.UserControl
 {
+    /// <summary>
+    /// Represents a user control for editing and configuring hotkey settings.
+    /// Provides a UI interface for users to view and modify keyboard shortcut combinations.
+    /// </summary>
     public partial class HotKeyEditorUserControl : System.Windows.Controls.UserControl
     {
         public static readonly DependencyProperty HotKeyProperty =
             DependencyProperty.Register(nameof(HotKey), typeof(MaaHotKey),
                 typeof(HotKeyEditorUserControl),
-                new FrameworkPropertyMetadata(default(MaaHotKey),
+                new FrameworkPropertyMetadata(null,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public MaaHotKey? HotKey
@@ -63,17 +68,18 @@ namespace MaaWpfGui.Views.UserControl
             }
 
             // If no actual key was pressed - return
-            if (key == Key.LeftCtrl ||
-                key == Key.RightCtrl ||
-                key == Key.LeftAlt ||
-                key == Key.RightAlt ||
-                key == Key.LeftShift ||
-                key == Key.RightShift ||
-                key == Key.LWin ||
-                key == Key.RWin ||
-                key == Key.Clear ||
-                key == Key.OemClear ||
-                key == Key.Apps)
+            if (key is
+                Key.LeftCtrl or
+                Key.RightCtrl or
+                Key.LeftAlt or
+                Key.RightAlt or
+                Key.LeftShift or
+                Key.RightShift or
+                Key.LWin or
+                Key.RWin or
+                Key.Clear or
+                Key.OemClear or
+                Key.Apps)
             {
                 return;
             }

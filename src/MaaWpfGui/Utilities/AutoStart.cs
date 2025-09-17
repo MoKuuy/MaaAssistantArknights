@@ -1,6 +1,6 @@
 // <copyright file="AutoStart.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -62,7 +62,7 @@ namespace MaaWpfGui.Utilities
         /// <returns>The value.</returns>
         public static bool CheckStart()
         {
-            if (Bootstrapper.IsUserAdministrator())
+            if (Bootstrapper.IsAdministratorWithUac())
             {
                 SetStart(false, out _);
                 return false;
@@ -90,7 +90,7 @@ namespace MaaWpfGui.Utilities
         {
             error = string.Empty;
 
-            if (set && Bootstrapper.IsUserAdministrator())
+            if (set && Bootstrapper.IsAdministratorWithUac())
             {
                 error = LocalizationHelper.GetString("LaunchOnSystemStartupAdminPrompt");
                 return false;
@@ -102,14 +102,14 @@ namespace MaaWpfGui.Utilities
                 if (key == null)
                 {
                     error = "Failed to open registry key.";
-                    _logger.Error(error);
+                    _logger.Error("{ErrorMessage}", error);
                     return false;
                 }
 
                 if (set)
                 {
                     key.SetValue(_registryKeyName, "\"" + _fileValue + "\"");
-                    _logger.Information($"Set [{_registryKeyName}, \"{_fileValue}\"] into \"{CurrentUserRunKey}\"");
+                    _logger.Information("Set [{RegistryKeyName}, \"{FileValue}\"] into \"{CurrentUserRunKey}\"", _registryKeyName, _fileValue, CurrentUserRunKey);
                 }
                 else
                 {
@@ -121,19 +121,19 @@ namespace MaaWpfGui.Utilities
             catch (UnauthorizedAccessException uae)
             {
                 error = "Unauthorized access: " + uae.Message;
-                _logger.Error(error);
+                _logger.Error("{ErrorMessage}", error);
                 return false;
             }
             catch (SecurityException se)
             {
                 error = "Security error: " + se.Message;
-                _logger.Error(error);
+                _logger.Error("{ErrorMessage}", error);
                 return false;
             }
             catch (Exception e)
             {
                 error = "Failed to set startup: " + e.Message;
-                _logger.Error(error);
+                _logger.Error("{ErrorMessage}", error);
                 return false;
             }
         }

@@ -1,6 +1,6 @@
 // <copyright file="ErrorView.xaml.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -11,10 +11,11 @@
 // but WITHOUT ANY WARRANTY
 // </copyright>
 
+#nullable enable
+
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -29,13 +30,13 @@ namespace MaaWpfGui.Views.UI
     /// </summary>
     public partial class ErrorView : INotifyPropertyChanged
     {
-        protected bool ShouldExit { get; set; }
+        protected bool ShouldExit { get; set; } = true;
 
-        public string ExceptionMessage { get; set; }
+        public string ExceptionMessage { get; set; } = string.Empty;
 
-        public string PossibleSolution { get; set; }
+        public string PossibleSolution { get; set; } = string.Empty;
 
-        public string ExceptionDetails { get; set; }
+        public string ExceptionDetails { get; set; } = string.Empty;
 
         private bool _congratulationsOnError = true;
 
@@ -92,9 +93,18 @@ namespace MaaWpfGui.Views.UI
 
             var isZhCn = ConfigurationHelper.GetGlobalValue(ConfigurationKeys.Localization, LocalizationHelper.DefaultLanguage) == "zh-cn";
             ErrorQqGroupLink.Visibility = isZhCn ? Visibility.Visible : Visibility.Collapsed;
+
+            try
+            {
+                AchievementTrackerHelper.Instance.Unlock(AchievementIds.CongratulationError);
+            }
+            catch
+            {
+                // ignored
+            }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         private static string GetSolution(string error, string details)
         {
@@ -114,7 +124,7 @@ namespace MaaWpfGui.Views.UI
                 return LocalizationHelper.GetString("ErrorSolutionCrash");
             }
 
-            if (details.Contains("CheckAndUpdateNow()") && details.Contains("MoveFile"))
+            if (details.Contains("CheckAndUpdateNow()") && (details.Contains("MoveFile") || details.Contains("DeleteFile")))
             {
                 return LocalizationHelper.GetString("ErrorSolutionUpdatePackageExtractionFailed");
             }
@@ -130,7 +140,12 @@ namespace MaaWpfGui.Views.UI
                 return LocalizationHelper.GetString("ErrorSolutionFailedToMove");
             }
 
-            return LocalizationHelper.GetString("UnknownErrorOccurs");
+            AchievementTrackerHelper.Instance.Unlock(AchievementIds.UnexpectedCrash);
+
+            return $"{LocalizationHelper.GetString("UnknownErrorOccurs")}\n" +
+                   $"{LocalizationHelper.GetString("ErrorCrashMessageOpenLog")}\n" +
+                   $"{LocalizationHelper.GetString("ErrorCrashMessageGenerateReport")}\n" +
+                   $"{LocalizationHelper.GetString("ErrorCrashMessageHelpTip")}";
         }
 
         protected override void OnClosed(EventArgs e)
@@ -162,7 +177,8 @@ namespace MaaWpfGui.Views.UI
 
             try
             {
-                Clipboard.SetDataObject(data, true);
+                System.Windows.Forms.Clipboard.Clear();
+                System.Windows.Forms.Clipboard.SetDataObject(data, true);
             }
             catch
             {
@@ -172,10 +188,17 @@ namespace MaaWpfGui.Views.UI
 
         private async void CopyErrorMessage_Click(object sender, RoutedEventArgs e)
         {
-            CopyToClipboard();
-            CopiedTip.IsOpen = true;
-            await Task.Delay(3000);
-            CopiedTip.IsOpen = false;
+            try
+            {
+                CopyToClipboard();
+                CopiedTip.IsOpen = true;
+                await Task.Delay(3000);
+                CopiedTip.IsOpen = false;
+            }
+            catch
+            {
+                // ignored
+            }
         }
     }
 }

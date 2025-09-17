@@ -1,6 +1,6 @@
 // <copyright file="StartSettingsUserControlModel.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -13,7 +13,6 @@
 
 #nullable enable
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -23,14 +22,13 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Windows;
 using HandyControl.Controls;
+using JetBrains.Annotations;
 using MaaWpfGui.Constants;
 using MaaWpfGui.Helper;
-using MaaWpfGui.Main;
 using MaaWpfGui.States;
 using MaaWpfGui.Utilities;
 using MaaWpfGui.ViewModels.UI;
 using Microsoft.Win32;
-using Newtonsoft.Json.Linq;
 using Serilog;
 using Stylet;
 
@@ -68,7 +66,7 @@ public class StartSettingsUserControlModel : PropertyChangedBase
         {
             if (!AutoStart.SetStart(value, out var error))
             {
-                _logger.Error($"Failed to set startup: {error}");
+                _logger.Error("Failed to set startup: {Error}", error);
                 MessageBoxHelper.Show(error, LocalizationHelper.GetString("Warning"), icon: MessageBoxImage.Warning);
                 return;
             }
@@ -179,14 +177,10 @@ public class StartSettingsUserControlModel : PropertyChangedBase
                 {
                     ConnectSettings.RetryOnDisconnected = false;
                     OpenEmulatorAfterLaunch = false;
-                    Growl.Warning(
-                        string.Format(
-                            LocalizationHelper.GetString("EmulatorPathEmptyWarning"),
-                            LocalizationHelper.GetString("RetryOnDisconnected"),
-                            LocalizationHelper.GetString("OpenEmulatorAfterLaunch")));
+                    Growl.Warning(LocalizationHelper.GetString("EmulatorPathEmptyWarning"));
                 }
             }
-            else if (!File.Exists(EmulatorPath))
+            else if (!File.Exists(value))
             {
                 Growl.Warning(LocalizationHelper.GetString("EmulatorPathNotExist"));
             }
@@ -300,7 +294,7 @@ public class StartSettingsUserControlModel : PropertyChangedBase
 
         for (var i = 0; i < delay; ++i)
         {
-            if (Instances.TaskQueueViewModel.Stopping)
+            if (_runningState.GetStopping())
             {
                 _logger.Information("Stop waiting for the emulator to start");
                 return;
@@ -372,14 +366,11 @@ public class StartSettingsUserControlModel : PropertyChangedBase
                 if (e is Win32Exception { NativeErrorCode: 740 })
                 {
                     Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("EmulatorStartFailed"), UiLogColor.Warning);
-
-                    _logger.Warning(
-                        "Insufficient permissions to start the emulator:\n" +
-                        "EmulatorPath: " + EmulatorPath + "\n");
+                    _logger.Warning("Insufficient permissions to start the emulator:\nEmulatorPath: {EmulatorPath}\n", EmulatorPath);
                 }
                 else
                 {
-                    _logger.Warning("Emulator start failed with error: " + e.Message);
+                    _logger.Warning("Emulator start failed with error: {ErrorMessage}", e.Message);
                 }
 
                 return;
@@ -474,46 +465,49 @@ public class StartSettingsUserControlModel : PropertyChangedBase
             return;
         }
 
-        // This allows for SQL injection, but since it is not on a real database nothing horrible would happen.
-        // The following query string does what I want, but WMI does not accept it.
-        // var wmiQueryString = string.Format("SELECT ProcessId, CommandLine FROM Win32_Process WHERE ExecutablePath='{0}'", adbPath);
-        const string WmiQueryString = "SELECT ProcessId, ExecutablePath, CommandLine FROM Win32_Process";
-        using var searcher = new ManagementObjectSearcher(WmiQueryString);
-        using var results = searcher.Get();
-        var query = from p in Process.GetProcesses()
-                    join mo in results.Cast<ManagementObject>()
-                        on p.Id equals (int)(uint)mo["ProcessId"]
-                    select new
-                    {
-                        Process = p,
-                        Path = (string)mo["ExecutablePath"],
-                    };
-        foreach (var item in query)
+        try
         {
-            if (item.Path != adbPath)
+            // This allows for SQL injection, but since it is not on a real database nothing horrible would happen.
+            // The following query string does what I want, but WMI does not accept it.
+            // var wmiQueryString = string.Format("SELECT ProcessId, CommandLine FROM Win32_Process WHERE ExecutablePath='{0}'", adbPath);
+            const string WmiQueryString = "SELECT ProcessId, ExecutablePath, CommandLine FROM Win32_Process";
+            using var searcher = new ManagementObjectSearcher(WmiQueryString);
+            using var results = searcher.Get();
+            var query = from p in Process.GetProcesses()
+                        join mo in results.Cast<ManagementObject>()
+                            on p.Id equals (int)(uint)mo["ProcessId"]
+                        select new { Process = p, Path = (string)mo["ExecutablePath"], };
+            foreach (var item in query)
             {
-                continue;
-            }
+                if (item.Path != adbPath)
+                {
+                    continue;
+                }
 
-            // Some emulators start their ADB with administrator privilege.
-            // Not sure if this is necessary
-            try
-            {
-                item.Process.Kill();
-                item.Process.WaitForExit();
+                // Some emulators start their ADB with administrator privilege.
+                // Not sure if this is necessary
+                try
+                {
+                    item.Process.Kill();
+                    item.Process.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("Error in HardRestartAdb: {ExMessage}", ex.Message);
+                }
             }
-            catch
-            {
-                // ignored
-            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Error in HardRestartAdb: {ExMessage}", ex.Message);
         }
     }
 
     /// <summary>
     /// Selects the emulator to execute.
+    /// UI 绑定的方法
     /// </summary>
-    // UI 绑定的方法
-    // ReSharper disable once UnusedMember.Global
+    [UsedImplicitly]
     public void SelectEmulatorExec()
     {
         var dialog = new OpenFileDialog
@@ -524,18 +518,6 @@ public class StartSettingsUserControlModel : PropertyChangedBase
         if (dialog.ShowDialog() == true)
         {
             EmulatorPath = dialog.FileName;
-        }
-    }
-
-    private bool _autoRestartOnDrop = Convert.ToBoolean(ConfigurationHelper.GetValue(ConfigurationKeys.AutoRestartOnDrop, "True"));
-
-    public bool AutoRestartOnDrop
-    {
-        get => _autoRestartOnDrop;
-        set
-        {
-            SetAndNotify(ref _autoRestartOnDrop, value);
-            ConfigurationHelper.SetValue(ConfigurationKeys.AutoRestartOnDrop, value.ToString());
         }
     }
 }

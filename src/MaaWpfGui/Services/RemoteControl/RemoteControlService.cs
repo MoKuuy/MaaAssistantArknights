@@ -1,6 +1,6 @@
 // <copyright file="RemoteControlService.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -80,7 +80,7 @@ namespace MaaWpfGui.Services.RemoteControl
             {
                 while (true)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(RemoteSettings.RemoteControlPollIntervalMs);
                     try
                     {
                         if (!IsEndpointValid(RemoteSettings.RemoteControlGetTaskEndpointUri))
@@ -105,7 +105,7 @@ namespace MaaWpfGui.Services.RemoteControl
             {
                 while (true)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(RemoteSettings.RemoteControlPollIntervalMs);
                     try
                     {
                         if (!IsEndpointValid(RemoteSettings.RemoteControlGetTaskEndpointUri))
@@ -129,7 +129,7 @@ namespace MaaWpfGui.Services.RemoteControl
             {
                 while (true)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(RemoteSettings.RemoteControlPollIntervalMs);
                     try
                     {
                         if (!IsEndpointValid(RemoteSettings.RemoteControlGetTaskEndpointUri))
@@ -377,7 +377,7 @@ namespace MaaWpfGui.Services.RemoteControl
                             Instances.TaskQueueViewModel.AddLog(startLogStr);
                             await Execute.OnUIThreadAsync(() =>
                             {
-                                Instances.TaskQueueViewModel.LinkStart();
+                               _ = Instances.TaskQueueViewModel.LinkStart();
                             });
                             await _runningState.UntilIdleAsync();
 
@@ -395,14 +395,14 @@ namespace MaaWpfGui.Services.RemoteControl
                     case "LinkStart-AutoRoguelike":
                     case "LinkStart-Reclamation":
                         {
-                            await LinkStart(new[] { type.Split('-')[1] });
+                            await LinkStart([type.Split('-')[1]]);
                             break;
                         }
 
                     case "Toolbox-GachaOnce":
                         {
                             await _runningState.UntilIdleAsync();
-                            Instances.RecognizerViewModel.GachaOnce();
+                            await Instances.RecognizerViewModel.GachaOnce();
                             await _runningState.UntilIdleAsync();
 
                             break;
@@ -411,7 +411,7 @@ namespace MaaWpfGui.Services.RemoteControl
                     case "Toolbox-GachaTenTimes":
                         {
                             await _runningState.UntilIdleAsync();
-                            Instances.RecognizerViewModel.GachaTenTimes();
+                            await Instances.RecognizerViewModel.GachaTenTimes();
                             await _runningState.UntilIdleAsync();
 
                             break;
@@ -423,7 +423,7 @@ namespace MaaWpfGui.Services.RemoteControl
                             bool connected = await Task.Run(() => Instances.AsstProxy.AsstConnect(ref errMsg));
                             if (connected)
                             {
-                                var image = Instances.AsstProxy.AsstGetImage();
+                                var image = await Instances.AsstProxy.AsstGetImageAsync();
                                 if (image == null)
                                 {
                                     status = "FAILED";
@@ -619,7 +619,7 @@ namespace MaaWpfGui.Services.RemoteControl
                 Instances.TaskQueueViewModel.AddLog(LocalizationHelper.GetString("ConnectingToEmulator"));
 
                 // 一般是点了“停止”按钮了
-                if (Instances.TaskQueueViewModel.Stopping)
+                if (_runningState.GetStopping())
                 {
                     Instances.TaskQueueViewModel.SetStopped();
                     return;
@@ -631,7 +631,7 @@ namespace MaaWpfGui.Services.RemoteControl
                 }
 
                 // 一般是点了“停止”按钮了
-                if (Instances.TaskQueueViewModel.Stopping)
+                if (_runningState.GetStopping())
                 {
                     Instances.TaskQueueViewModel.SetStopped();
                     return;

@@ -1,6 +1,6 @@
 // <copyright file="ExternalNotificationService.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -38,6 +38,7 @@ namespace MaaWpfGui.Services.Notification
                     "Telegram" => new TelegramNotificationProvider(Instances.HttpService),
                     "Discord" => new DiscordNotificationProvider(Instances.HttpService),
                     "Discord Webhook" => new DiscordWebhookNotificationProvider(Instances.HttpService),
+                    "Custom Webhook" => new CustomWebhookNotificationProvider(Instances.HttpService),
                     "SMTP" => new SmtpNotificationProvider(),
                     "Bark" => new BarkNotificationProvider(Instances.HttpService),
                     "Qmsg" => new QmsgNotificationProvider(Instances.HttpService),
@@ -73,7 +74,7 @@ namespace MaaWpfGui.Services.Notification
         /// <param name="isTest">Indicate if it is a test or not.</param>
         public static void Send(string title, string content, bool isTest = false)
         {
-            var task = SendAsync(title, content, isTest);
+            var task = SendAsync("[MAA] " + title, content, isTest);
             _taskContainers.RemoveAll(x => x.Status != TaskStatus.Running);
             _taskContainers.Add(task);
         }

@@ -12,9 +12,9 @@ on:
       - "src/**"
       - "cmake/**"
       - "CMakeLists.txt"
-      - "MAA.sln"
       - ".github/workflows/ci.yml"
       - "!**/*.md"
+      - "tools/maadeps-download.py"
   pull_request:
     branches:
       - "dev"
@@ -24,8 +24,8 @@ on:
       - "src/**"
       - "cmake/**"
       - "CMakeLists.txt"
-      - "MAA.sln"
       - "!**/*.md"
+      - "tools/maadeps-download.py"
   workflow_dispatch:
 
 concurrency:
@@ -45,7 +45,7 @@ jobs:
       prerelease: ${{ steps.set_pre.outputs.prerelease }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: temp
           show-progress: false
@@ -89,6 +89,8 @@ jobs:
           fi
           echo >> CHANGELOG.md
           echo "**Full Changelog**: [$last_tag -> $this_tag](https://github.com/MaaAssistantArknights/MaaAssistantArknights/compare/${last_tag}...${this_tag})" >> CHANGELOG.md
+          echo >> CHANGELOG.md
+          echo "[已有 Mirror酱 CDK？前往 Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MAA&source=maagh-release)" >> CHANGELOG.md
 
       - name: Upload changelog to Github
         uses: actions/upload-artifact@v4
@@ -106,24 +108,48 @@ jobs:
     needs: meta
     strategy:
       matrix:
-        include:
-          - msbuild_target: x64
-            lowercase_target: x64
-          - msbuild_target: ARM64
-            lowercase_target: arm64
-    env:
-      MAABUILDER_TARGET_PLATFORM: ${{ matrix.msbuild_target }}
+        arch: [arm64, x64]
+      fail-fast: false
     runs-on: windows-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
 
       - name: Fetch submodules
         run: |
           git submodule update --init --depth 1 3rdparty/EmulatorExtras
+
+      - name: Cache MaaDeps
+        id: cache-maadeps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./MaaDeps
+          key: ${{ runner.os }}-${{ matrix.arch }}-maadeps-${{ hashFiles('tools/maadeps-download.py') }}
+
+      - name: Bootstrap MaaDeps
+        if: steps.cache-maadeps.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/maadeps-download.py ${{ matrix.arch }}-windows
+
+      - name: Config cmake
+        run: |
+          mkdir -p build
+          cmake -B build ${{ matrix.arch == 'arm64' && '-A ARM64' }} -DCMAKE_BUILD_TYPE=Release -DMAADEPS_TRIPLET='maa-${{ matrix.arch }}-windows' -DINSTALL_RESOURCE=ON -DINSTALL_PYTHON=ON -DMAA_HASH_VERSION='${{ needs.meta.outputs.tag }}' -DBUILD_WPF_GUI=OFF
+
+      - name: Build
+        run: |
+          cmake --build build --config Release --parallel $env:NUMBER_OF_PROCESSORS
+
+      - name: Install
+        run: |
+          mkdir -p install
+          cmake --install build --prefix install --config Release
 
       - name: Cache .nuke/temp, ~/.nuget/packages
         id: cache-nuget
@@ -132,38 +158,13 @@ jobs:
           path: |
             .nuke/temp
             ~/.nuget/packages
-          key: ${{ runner.os }}-${{ matrix.msbuild_target }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-nuget-${{ hashFiles('**/*.csproj') }}
 
       - name: Restore dependencies
         if: steps.cache-nuget.outputs.cache-hit != 'true'
-        run: dotnet restore
+        run: dotnet restore src/MaaWpfGui/MaaWpfGui.csproj
 
-      - name: Cache MaaDeps
-        id: cache-maadeps
-        uses: actions/cache@v4
-        with:
-          path: |
-            ./MaaDeps
-          key: ${{ runner.os }}-${{ matrix.lowercase_target }}-maadeps-${{ hashFiles('./maadeps-download.py') }}
-
-      - name: Bootstrap MaaDeps
-        if: steps.cache-maadeps.outputs.cache-hit != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 maadeps-download.py ${{ matrix.lowercase_target }}-windows
-
-      - name: Create fake event file
-        shell: bash
-        run: cp -v "$GITHUB_EVENT_PATH" ./event.json
-
-      - name: Merge Event Data with Inputs
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          cat "$GITHUB_EVENT_PATH" | jq '. + { "inputs": {"ReleaseSimulation": "${{ needs.meta.outputs.tag }}"} }' | tee ./event.json
-
-      - name: Taggify Version
+      - name: Taggify Version for csproj
         run: |
           $csprojPath = "src/MaaWpfGui/MaaWpfGui.csproj"
           $csprojPath = Resolve-Path -Path $csprojPath
@@ -180,29 +181,31 @@ jobs:
           $node.FileVersion = $match
           $node.AssemblyVersion = $match
           $csproj.Save($csprojPath)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
+      - name: Publish WPF GUI
+        continue-on-error: true
         run: |
-          $env:GITHUB_WORKFLOW = 'dev-build-win' # pretend this is a dev-build-win workflow
-          $env:GITHUB_EVENT_PATH = "$pwd\\event.json"
-          $env:GITHUB_REF = "refs/heads/not_master"
-          $env:MAA_BUILDER_MAA_VERSION = '${{ needs.meta.outputs.tag }}'
-          ./build.cmd DevBuild
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dotnet publish src/MaaWpfGui/MaaWpfGui.csproj -c Release -o install
 
-      - name: Cleanup checksum file
-        run: |
-          rm -vf ./artifacts/checksum.json
+      - name: Organize Install Files
         shell: bash
+        run: |
+          rm -rf install/*.pdb
+          rm -rf install/msvc-debug
+          rm -rf install/*.h
+
+          cp tools/DependencySetup_依赖库安装.bat install
+
+      - name: Zip files
+        run: |
+          cd install
+          Compress-Archive -Destination MAA-${{ needs.meta.outputs.tag }}-win-${{ matrix.arch }}.zip -Path ./*
 
       - name: Upload MAA to Github
         uses: actions/upload-artifact@v4
         with:
-          name: MAA-win-${{ matrix.lowercase_target }}
-          path: artifacts
+          name: MAA-win-${{ matrix.arch }}
+          path: install/*.zip
 
   ubuntu:
     # Prevent duplicate runs on organization branches with PRs
@@ -211,15 +214,14 @@ jobs:
       github.event.pull_request.base.repo.full_name
 
     needs: meta
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [aarch64, x86_64]
-    permissions:
-      actions: write
+      fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
 
@@ -228,40 +230,41 @@ jobs:
           git submodule update --init --depth 1 3rdparty/EmulatorExtras
           git submodule update --init --depth 1 src/maa-cli
 
-      - name: Install cross compile toolchains
-        if: ${{ matrix.arch != 'x86_64' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install g++-12-aarch64-linux-gnu g++-12-aarch64-linux-gnu
+      - name: Cache MaaDeps
+        id: cache-maadeps
+        uses: actions/cache@v4
+        with:
+          path: ./MaaDeps
+          key: ${{ runner.os }}-${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-maadeps-${{ hashFiles('tools/maadeps-download.py') }}
 
-      # Caching not necessary on ubuntu runner
       - name: Bootstrap MaaDeps
+        if: steps.cache-maadeps.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 maadeps-download.py ${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-linux
+          python3 tools/maadeps-download.py ${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-linux
 
-      - name: Build MAA
+      - name: Config cmake
         run: |
           mkdir -p build
           cmake -B build \
-            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DCMAKE_BUILD_TYPE=Release \
             -DMAADEPS_TRIPLET='maa-${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-linux' \
-            -DINSTALL_THIRD_LIBS=ON \
             -DINSTALL_RESOURCE=ON \
             -DINSTALL_PYTHON=ON \
-            -DMAA_VERSION='${{ needs.meta.outputs.tag }}'
-          cmake --build build --parallel $(nproc --all)
+            -DMAA_HASH_VERSION='${{ needs.meta.outputs.tag }}' \
+            -DCMAKE_TOOLCHAIN_FILE=MaaDeps/cmake/maa-${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-linux-toolchain.cmake
 
-          mkdir -p install
-          cmake --install build --prefix install
+      - name: Build
+        run: |
+          cmake --build build --config Release --parallel $(nproc)
         env:
-          CC: ${{ matrix.arch == 'x86_64' && 'gcc-12' || 'aarch64-linux-gnu-gcc-12' }}
-          CXX: ${{ matrix.arch == 'x86_64' && 'g++-12' || 'aarch64-linux-gnu-g++-12' }}
-          CMAKE_COLOR_DIAGNOSTICS: ON
           CLICOLOR_FORCE: 1
-          CXXFLAGS: | # workaround for gcc bugs
-            -Wno-error=restrict -Wno-error=array-bounds -Wno-error=stringop-overread -Wno-error=missing-field-initializers
+
+      - name: Install
+        run: |
+          mkdir -p install
+          cmake --install build --prefix install --config Release
 
       - name: Setup Cross Compile Toolchains for CLI
         uses: ./src/maa-cli/.github/actions/setup
@@ -306,7 +309,7 @@ jobs:
           ln -sv usr/share/maa/maa Maa.AppDir/AppRun
           mkdir -pv Maa.AppDir/usr/share/metainfo/
           cp -v tools/AppImage/io.github.maaassistantarknights.maaassistantarknights.metainfo.xml Maa.AppDir/usr/share/metainfo/
-          wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          wget "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           # appimagetool with embedded runtime does not support cross build, till AppImage/appimagetool 7a10b8
           wget "https://github.com/AppImage/type2-runtime/releases/download/old/runtime-fuse3-${{ matrix.arch }}"
           chmod a+x appimagetool-x86_64.AppImage
@@ -335,36 +338,50 @@ jobs:
       github.event.pull_request.base.repo.full_name
 
     needs: meta
-    runs-on: macos-14
+    runs-on: macos-latest
     strategy:
       matrix:
         arch: [arm64, x86_64]
+      fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
 
-      - name: Install Dependencies
-        run: |
-          brew install ninja
+      # ninja 1.13.1 is already installed and up-to-date.
+      # - name: Install Dependencies
+      #   run: |
+      #     brew install ninja
 
-      # Caching not necessary on macOS runner
+      - name: Cache MaaDeps
+        id: cache-maadeps
+        uses: actions/cache@v4
+        with:
+          path: ./MaaDeps
+          key: ${{ runner.os }}-${{ matrix.arch == 'x86_64' && 'x64' || 'arm64' }}-maadeps-${{ hashFiles('tools/maadeps-download.py') }}
+
       - name: Bootstrap MaaDeps
         run: |
           [[ ${{ matrix.arch }} = "arm64" ]] && triplet="arm64-osx" || triplet="x64-osx"
-          python3 maadeps-download.py ${triplet}
+          python3 tools/maadeps-download.py ${triplet}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure MaaCore
+      - name: Config cmake
         run: |
-          cmake -B build -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES='${{ matrix.arch }}' -DMAA_VERSION='${{ needs.meta.outputs.tag }}'
+          cmake -B build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES='${{ matrix.arch }}' \
+            -DMAA_HASH_VERSION='${{ needs.meta.outputs.tag }}'
 
-      - name: Build MaaCore
+      - name: Build
         run: |
-          cmake --build build
-          cmake --install build --prefix install
+          cmake --build build --config Release --parallel $(sysctl -n hw.logicalcpu)
+
+      - name: Install
+        run: |
+          cmake --install build --prefix install --config Release
 
       - name: Upload MAA to Github
         uses: actions/upload-artifact@v4
@@ -379,10 +396,10 @@ jobs:
       github.event.pull_request.base.repo.full_name
 
     needs: [meta, macOS-Core]
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
 
@@ -397,13 +414,13 @@ jobs:
           git submodule update --init --depth 1 src/MaaMacGui
 
       - name: Download Arm64 MAA from Github
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: MAACore-macos-arm64
           path: install-arm64
 
       - name: Download x64 MAA from Github
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: MAACore-macos-x86_64
           path: install-x86_64
@@ -545,7 +562,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download MAA from Github
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: assets
 
@@ -558,7 +575,7 @@ jobs:
           find . -type f | while read f; do mv -fvt . $f; done
 
       - name: Release to Github
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.3.3
         with:
           body_path: CHANGELOG.md
           files: |
@@ -577,3 +594,12 @@ jobs:
           gh workflow run --repo $GITHUB_REPOSITORY release-ota
         env:
           GH_TOKEN: ${{ secrets.MISTEOWORKFLOW }}
+
+      - name: Create issue if failed
+        if: failure()
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-issue"
+          title: "Failed Release"
+          body: |
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

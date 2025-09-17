@@ -3,7 +3,7 @@
 #include <numbers>
 #include <regex>
 
-#include "Utils/Ranges.hpp"
+#include <ranges>
 
 #include "Utils/NoWarningCV.h"
 
@@ -56,8 +56,6 @@ bool asst::StageDropsImageAnalyzer::analyze_stage_code()
 
     RegionOCRer analyzer(m_image);
     analyzer.set_task_info("StageDrops-StageName");
-    analyzer.set_bin_threshold(210, 255);
-    analyzer.set_use_raw(false);
     if (!analyzer.analyze()) {
         return false;
     }
@@ -85,6 +83,7 @@ bool asst::StageDropsImageAnalyzer::analyze_times()
     LogTraceFunction;
     RegionOCRer check_analyzer(m_image);
     check_analyzer.set_task_info("StageDrops-TimesCheck");
+    check_analyzer.set_use_raw(true);
     if (!check_analyzer.analyze()) {
         m_times = -1; // not found
         Log.info(__FUNCTION__, "Times not found");
@@ -105,6 +104,7 @@ bool asst::StageDropsImageAnalyzer::analyze_times()
 
     RegionOCRer rec_analyzer(m_image);
     rec_analyzer.set_task_info("StageDrops-TimesRec");
+    rec_analyzer.set_use_raw(true);
     if (!rec_analyzer.analyze()) {
         m_times = -2; // recognition failed
         Log.error(__FUNCTION__, "recognition failed");
@@ -264,7 +264,7 @@ bool asst::StageDropsImageAnalyzer::analyze_drops()
     auto task_ptr = Task.get("StageDrops-Item");
 
     bool has_error = false;
-    const auto& roi = task_ptr->roi;
+    const auto& roi = task_ptr->rect_move;
     for (auto it = m_baseline.cbegin(); it != m_baseline.cend(); ++it) {
         const auto& [baseline, drop_type] = *it;
         bool is_first_drop_type = it == m_baseline.cbegin();
@@ -553,7 +553,7 @@ bool asst::StageDropsImageAnalyzer::analyze_baseline()
     }
 
     Log.trace(__FUNCTION__, "baseline size", m_baseline.size());
-    for (const auto& key : m_baseline | views::keys) {
+    for (const auto& key : m_baseline | std::views::keys) {
         Log.trace(__FUNCTION__, "baseline", key.to_string());
     }
 
@@ -867,7 +867,7 @@ int asst::StageDropsImageAnalyzer::quantity_string_to_int(const std::string& str
 
     constexpr char Dot = '.';
     if (digit_str.empty() ||
-        !ranges::all_of(digit_str, [](const char& c) -> bool { return std::isdigit(c) || c == Dot; })) {
+        !std::ranges::all_of(digit_str, [](const char& c) -> bool { return std::isdigit(c) || c == Dot; })) {
         return 0;
     }
     if (auto dot_pos = digit_str.find(Dot); dot_pos != std::string::npos) {

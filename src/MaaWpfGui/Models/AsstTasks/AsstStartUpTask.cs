@@ -1,6 +1,6 @@
 // <copyright file="AsstStartUpTask.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -30,7 +30,7 @@ public class AsstStartUpTask : AsstBaseTask
     public string ClientType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets a value indicating whether gets or sets 是否自动启动客户端
+    /// Gets or sets a value indicating whether 是否自动启动客户端
     /// </summary>
     [JsonProperty("start_game_enabled")]
     public bool StartGame { get; set; }

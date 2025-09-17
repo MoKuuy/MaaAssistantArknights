@@ -20,13 +20,9 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
 
     m_theme = theme;
     m_mode = mode;
-    if (m_theme != RoguelikeTheme::Phantom) {
-        m_difficulty = params.get("difficulty", 0);
-    }
-    else if (params.contains("difficulty")) {
-        Log.error(__FUNCTION__, "| Invalid difficulty for theme", m_theme);
-        return false;
-    }
+    m_difficulty = params.get("difficulty", -1);
+
+    Log.info("Roguelike theme", m_theme, "| mode", static_cast<int>(m_mode), "| difficulty", m_difficulty);
 
     if (mode == RoguelikeMode::Collectible) {
         m_collectible_mode_shopping = params.get("collectible_mode_shopping", false);
@@ -58,7 +54,7 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
         }
         Task.set_task_base(strategy_task, strategy_task_with_mode);
 
-        // 点刺成锭分队特殊策略
+        // 萨卡兹点刺成锭分队特殊策略
         if (m_theme == "Sarkaz") {
             if (m_mode == RoguelikeMode::Investment && params.get("squad", "") == "点刺成锭分队") {
                 // 启用特殊策略，联动 RoguelikeRoutingTaskPlugin
@@ -75,17 +71,28 @@ bool asst::RoguelikeConfig::verify_and_load_params(const json::value& params)
                     "Sarkaz@Roguelike@StageBurdenOperation-Start");
             }
         }
+        // 界园指挥分队特殊策略
+        if (m_theme == "JieGarden") {
+            if (m_mode == RoguelikeMode::Investment && params.get("squad", "") == "指挥分队" && m_difficulty >= 3) {
+                // 启用特殊策略，联动 RoguelikeRoutingTaskPlugin
+                Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange-FastInvestment");
+            }
+            if (m_mode == RoguelikeMode::Collectible &&
+                params.get("collectible_mode_squad", params.get("squad", "")) == "指挥分队" && m_difficulty >= 3) {
+                // 启用特殊策略，联动 RoguelikeRoutingTaskPlugin
+                Task.set_task_base(strategy_task, "JieGarden@Roguelike@StrategyChange_mode4-FastPass");
+            }
+        }
     }
 
     if (m_mode == RoguelikeMode::Investment) {
         bool investment_with_more_score = params.get("investment_with_more_score", false);
-        if (!params.contains("investment_with_more_score") && params.contains("investment_enter_second_floor")) {
-            investment_with_more_score = params.get("investment_enter_second_floor", true);
+        if (params.contains("investment_enter_second_floor")) {
             Log.warn("================  DEPRECATED  ================");
-            Log.warn(
-                "`investment_enter_second_floor` has been deprecated since v5.2.1; Please use "
-                "'investment_with_more_score'");
+            LogWarn << "`investment_enter_second_floor` has been deprecated since v5.2.1; Please use "
+                       "'investment_with_more_score'";
             Log.warn("================  DEPRECATED  ================");
+            return false;
         }
         m_invest_with_more_score = (investment_with_more_score);
     }
@@ -103,7 +110,6 @@ void asst::RoguelikeConfig::clear()
     m_status.opers.reserve(m_status.formation_upper_limit);
 
     // ------------------ 通用参数 ------------------
-    m_core_char = std::string();
     m_squad = std::string();
 }
 

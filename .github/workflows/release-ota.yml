@@ -9,12 +9,12 @@ on:
       limit:
         description: Number of releases to fetch from MaaAssistantArknights, 2 at least
         required: false
-        default: "31"
+        default: 31
         type: number
       limit_2:
         description: Number of releases to fetch from MaaRelease
         required: false
-        default: "30"
+        default: 30
         type: number
 
 env:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch MaaRelease
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
           repository: ${{ format('{0}/{1}', github.repository_owner, 'MaaRelease') }}
@@ -94,10 +94,13 @@ jobs:
           - x64
     steps:
       - name: Download release config
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
+        with:
+          name: MaaReleaseConfig
+          path: ./MaaReleaseConfig
 
       - name: Fetch MaaRelease
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
           repository: ${{ format('{0}/{1}', github.repository_owner, 'MaaRelease') }}
@@ -106,7 +109,7 @@ jobs:
           token: ${{ secrets.MAARELEASE_RELEASE }}
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
           path: MaaAssistantArknights
@@ -133,6 +136,15 @@ jobs:
           tag: ${{ needs.create-tag.outputs.release_tag }}
           prerelease: ${{ fromJSON(needs.create-tag.outputs.prerelease) }}
           overwrite: true
+
+      - name: Create issue if failed
+        if: failure()
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-issue"
+          title: "Failed make release OTA for Windows"
+          body: |
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   make-ota-mac:
     needs: create-tag
@@ -177,6 +189,15 @@ jobs:
           prerelease: ${{ fromJSON(needs.create-tag.outputs.prerelease) }}
           overwrite: true
 
+      - name: Create issue if failed
+        if: failure()
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-issue"
+          title: "Failed make release OTA for macos"
+          body: |
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
   release:
     needs:
       - make-ota

@@ -1,10 +1,16 @@
 #pragma once
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+#include <csignal>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <mutex>
+#include <ranges>
 #include <streambuf>
 #include <thread>
 #include <type_traits>
@@ -15,7 +21,6 @@
 #include "Locale.hpp"
 #include "Meta.hpp"
 #include "Platform.hpp"
-#include "Ranges.hpp"
 #include "SingletonHolder.hpp"
 #include "Time.hpp"
 #include "WorkingDir.hpp"
@@ -464,32 +469,14 @@ public:
                 s << utils::path_to_utf8_string(std::forward<T>(v));
             }
             else if constexpr (std::same_as<Logger::level, remove_cvref_t<T>>) {
-                constexpr int buff_len = 128;
-                char buff[buff_len] = { 0 };
 #ifdef _WIN32
-#ifdef _MSC_VER
-                sprintf_s(
-                    buff,
-                    buff_len,
-#else  // ! _MSC_VER
-                sprintf(
-                    buff,
-#endif // END _MSC_VER
-                    "[%s][%s][Px%x][Tx%4.4lx]",
-                    asst::utils::get_format_time().c_str(),
-                    v.str.data(),
-                    m_pid,
-                    m_tid);
-#else  // ! _WIN32
-                sprintf(
-                    buff,
-                    "[%s][%s][Px%x][Tx%4.4hx]",
-                    asst::utils::get_format_time().c_str(),
-                    v.str.data(),
-                    m_pid,
-                    m_tid);
-#endif // END _WIN32
-                s << buff;
+                int pid = _getpid();
+#else
+                int pid = ::getpid();
+#endif
+                auto tid = static_cast<uint16_t>(std::hash<std::thread::id> {}(std::this_thread::get_id()));
+
+                s << std::format("[{}][{}][Px{}][Tx{}]", utils::format_now(), v.str, pid, tid);
             }
             else if constexpr (std::is_enum_v<T> && enum_could_to_string<T>) {
                 s << asst::enum_to_string(std::forward<T>(v));
@@ -500,7 +487,7 @@ public:
             else if constexpr (std::constructible_from<std::string, T>) {
                 s << std::string(std::forward<T>(v));
             }
-            else if constexpr (ranges::input_range<T>) {
+            else if constexpr (std::ranges::input_range<T>) {
                 s << "[";
                 std::string_view comma_space {};
                 for (const auto& elem : std::forward<T>(v)) {
@@ -526,20 +513,6 @@ public:
         separator m_sep = separator::space;
         std::unique_lock<std::mutex> m_trace_lock;
         stream_t m_ofs;
-
-        inline static thread_local const auto m_pid =
-#ifdef _WIN32
-            _getpid();
-#else
-            ::getpid();
-#endif
-
-        inline static thread_local const auto m_tid =
-#ifdef _WIN32
-            ::GetCurrentThreadId();
-#else
-            static_cast<unsigned short>(std::hash<std::thread::id> {}(std::this_thread::get_id()));
-#endif
     };
 
     // template <typename stream_t>
@@ -572,12 +545,7 @@ public:
         {
             if (c != traits_type::eof()) {
                 ch = static_cast<char>(c);
-                if (ch == '\n') {
-                    count += NewLineSize;
-                }
-                else {
-                    count++;
-                }
+                count++;
                 if (dest) {
                     dest->sputc(ch);
                 }
@@ -604,11 +572,6 @@ public:
         }
 
     private:
-#if defined(_WIN32) || defined(_WIN64)
-        const static std::size_t NewLineSize = 2; // \r\n;
-#else
-        const static std::size_t NewLineSize = 1; // \n;
-#endif
         char ch = 0;
         std::filebuf* dest;
         std::streamsize count = 0;
@@ -673,18 +636,47 @@ public:
     template <typename... Args>
     inline void debug([[maybe_unused]] Args&&... args)
     {
-#ifdef ASST_DEBUG
-        constexpr bool need_log = true;
-#else
+#ifndef ASST_DEBUG
         static const bool need_log = std::filesystem::exists("DEBUG.txt");
-#endif
-        if (need_log) {
-            std::unique_lock lock { m_trace_mutex };
-            log(std::move(lock), level::debug, m_scopes.next(), std::forward<Args>(args)...);
+        if (!need_log) {
+            return;
         }
+#endif
+        std::unique_lock lock { m_trace_mutex };
+        log(std::move(lock), level::debug, m_scopes.next(), std::forward<Args>(args)...);
     }
 
 #undef LOGGER_FUNC_WITH_LEVEL
+
+    template <typename... args_t>
+    auto error_(args_t&&... args)
+    {
+        return stream(level::error, m_scopes.next(), std::forward<args_t>(args)...);
+    }
+
+    template <typename... args_t>
+    auto warn_(args_t&&... args)
+    {
+        return stream(level::warn, m_scopes.next(), std::forward<args_t>(args)...);
+    }
+
+    template <typename... args_t>
+    auto info_(args_t&&... args)
+    {
+        return stream(level::info, m_scopes.next(), std::forward<args_t>(args)...);
+    }
+
+    template <typename... args_t>
+    auto debug_(args_t&&... args)
+    {
+        return stream(level::debug, m_scopes.next(), std::forward<args_t>(args)...);
+    }
+
+    template <typename... args_t>
+    auto trace_(args_t&&... args)
+    {
+        return stream(level::trace, m_scopes.next(), std::forward<args_t>(args)...);
+    }
 
     template <typename... Args>
     inline int push(Args&&... args)
@@ -717,15 +709,13 @@ public:
             return;
         }
         rotate();
-        (LogStream(
-             std::move(lock),
 #ifdef ASST_DEBUG
-             ostreams { console_ostream(std::cout), m_of },
-#else
-             m_of,
-#endif
-             lv)
+        (LogStream(std::move(lock), ostreams { console_ostream(std::cout), m_of }, lv)
          << ... << std::forward<Args>(args));
+#else
+        (LogStream(std::move(lock), m_of, lv) << ... << std::forward<Args>(args));
+
+#endif
     }
 
     void flush()
@@ -745,6 +735,10 @@ private:
         m_buff(nullptr),
         m_of(&m_buff)
     {
+#ifndef ASST_DEBUG
+        initialize_exception_handlers();
+#endif
+
         try {
             std::filesystem::create_directories(m_log_path.parent_path());
         }
@@ -784,8 +778,43 @@ private:
 
     void LoadFileStream()
     {
-        m_ofs = std::ofstream(m_log_path, std::ios::out | std::ios::app);
-        m_file_size = std::filesystem::file_size(m_log_path);
+#ifdef _WIN32
+        FILE* fp = nullptr;
+        int file_handle = -1;
+        int oflag = _O_WRONLY | _O_APPEND | _O_CREAT | _O_BINARY | _O_NOINHERIT; // 写入、追加、创建、二进制、不可继承
+        int shflag = _SH_DENYWR;                                                 // 允许其他进程读取但不能写入
+        int pmode = _S_IREAD | _S_IWRITE;                                        // 读写权限
+
+        // 打开文件
+        if (_sopen_s(&file_handle, utils::path_to_utf8_string(m_log_path).c_str(), oflag, shflag, pmode) == 0) {
+            // 文件打开成功，转换为FILE*指针
+            fp = _fdopen(file_handle, "a"); // 使用追加模式
+            if (!fp) {
+                // 如果转换失败，关闭文件句柄
+                _close(file_handle);
+            }
+        }
+
+        if (!fp) {
+            // 打开失败时回退到原始方法
+            m_ofs = std::ofstream(m_log_path, std::ios::out | std::ios::ate);
+        }
+        else {
+            // 使用文件指针创建新的std::ofstream
+            // 注意：传递文件指针的所有权给ofstream
+            m_ofs = std::ofstream(fp);
+
+            // 如果需要，这里还可以添加一个安全检查
+            if (!m_ofs) {
+                fclose(fp);
+                m_ofs = std::ofstream(m_log_path, std::ios::out | std::ios::ate);
+            }
+        }
+#else
+        m_ofs = std::ofstream(m_log_path, std::ios::out | std::ios::ate);
+#endif
+        // 获取文件大小并设置缓冲区
+        m_file_size = std::filesystem::exists(m_log_path) ? std::filesystem::file_size(m_log_path) : 0;
         m_buff = LogStreambuf(m_ofs.rdbuf());
         m_of.rdbuf(&m_buff);
     }
@@ -798,6 +827,131 @@ private:
         trace("Built at", __DATE__, __TIME__);
         trace("User Dir", m_directory);
         trace("-----------------------------");
+    }
+
+#ifndef ASST_DEBUG
+
+    inline static std::atomic<const char*> g_last_signal_reason { nullptr };
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+    static void write_crash_file(const char* reason, const char* detail = nullptr) noexcept
+    {
+        FILE* f = fopen("crash.log", "a");
+        if (!f) {
+            return;
+        }
+        fprintf(f, "=== FATAL ERROR ===\n");
+        if (reason) {
+            fprintf(f, "Reason: %s\n", reason);
+        }
+        if (detail) {
+            fprintf(f, "Detail: %s\n", detail);
+        }
+        fprintf(f, "===================\n\n");
+        fclose(f);
+    }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    static void custom_terminate_handler() noexcept
+    {
+        static bool in_handler = false;
+        if (in_handler) {
+            std::_Exit(EXIT_FAILURE); // 避免递归
+        }
+        in_handler = true;
+
+        try {
+            auto& logger = Logger::get_instance();
+
+            // 先写信号信息
+            if (auto sig_reason = g_last_signal_reason.load()) {
+                logger.error("=== FATAL ERROR ===");
+                logger.error("Signal caught:", sig_reason);
+                logger.flush();
+                write_crash_file("Fatal Signal", sig_reason);
+            }
+
+            // 再处理 C++ 异常
+            std::string exception_info = "Unknown exception";
+            if (auto eptr = std::current_exception()) {
+                try {
+                    std::rethrow_exception(eptr);
+                }
+                catch (const std::exception& e) {
+                    exception_info = std::string("std::exception: ") + e.what() + " (type: " + typeid(e).name() + ")";
+                }
+                catch (...) {
+                    exception_info = "Unknown exception type";
+                }
+            }
+
+            logger.error("=== FATAL ERROR ===");
+            logger.error("Unhandled exception caught:", exception_info);
+            logger.error("Program terminating...");
+            logger.error("===================");
+            logger.flush();
+            write_crash_file("Unhandled exception", exception_info.c_str());
+        }
+        catch (...) {
+            std::cerr << "=== FATAL ERROR ===" << std::endl;
+            std::cerr << "Failed to log exception details to file" << std::endl;
+            std::cerr << "Unhandled exception caught, program terminating..." << std::endl;
+            std::cerr << "===================" << std::endl;
+        }
+    }
+
+    static void signal_handler(int sig)
+    {
+        std::string sig_name;
+        switch (sig) {
+        case SIGSEGV:
+            sig_name = "SIGSEGV (Segmentation Fault)";
+            break;
+        case SIGABRT:
+            sig_name = "SIGABRT (Abort)";
+            break;
+        case SIGFPE:
+            sig_name = "SIGFPE (Floating Point Error)";
+            break;
+        case SIGILL:
+            sig_name = "SIGILL (Illegal Instruction)";
+            break;
+        default:
+            sig_name = "Signal " + std::to_string(sig);
+            break;
+        }
+        g_last_signal_reason.store(sig_name.c_str());
+        custom_terminate_handler();
+        std::_Exit(EXIT_FAILURE);
+    }
+
+    static void initialize_exception_handlers()
+    {
+        std::signal(SIGSEGV, signal_handler);
+        std::signal(SIGABRT, signal_handler);
+        std::signal(SIGFPE, signal_handler);
+        std::signal(SIGILL, signal_handler);
+    }
+#endif
+
+    template <typename... args_t>
+    auto stream(level lv, args_t&&... args)
+    {
+        rotate();
+#ifdef ASST_DEBUG
+        return LogStream(
+            std::unique_lock { m_trace_mutex },
+            ostreams { console_ostream(std::cout), m_of },
+            lv,
+            std::forward<args_t>(args)...);
+#else
+        return LogStream(std::unique_lock { m_trace_mutex }, m_of, lv, std::forward<args_t>(args)...);
+#endif
     }
 
     detail::scope_slice m_scopes;
@@ -872,11 +1026,11 @@ private:
 #define _CatVarNameWithLine(Var) _Cat(Var, __LINE__)
 
 #define Log asst::Logger::get_instance()
-#define LogDebug Log << asst::Logger::level::debug
-#define LogTrace Log << asst::Logger::level::trace
-#define LogInfo Log << asst::Logger::level::info
-#define LogWarn Log << asst::Logger::level::warn
-#define LogError Log << asst::Logger::level::error
+#define LogDebug Log.debug_()
+#define LogTrace Log.trace_()
+#define LogInfo Log.info_()
+#define LogWarn Log.warn_()
+#define LogError Log.error_()
 
 #define LogTraceScope LoggerAux _CatVarNameWithLine(_func_aux_)
 

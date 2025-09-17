@@ -1,6 +1,6 @@
 // <copyright file="MaaService.cs" company="MaaAssistantArknights">
-// MaaWpfGui - A part of the MaaCoreArknights project
-// Copyright (C) 2021 MistEO and Contributors
+// Part of the MaaWpfGui project, maintained by the MaaAssistantArknights team (Maa Team)
+// Copyright (C) 2021-2025 MaaAssistantArknights Contributors
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License v3.0 only as published by
@@ -40,6 +40,9 @@ namespace MaaWpfGui.Services
         public static extern bool AsstSetStaticOption(AsstStaticOptionKey key, [MarshalAs(UnmanagedType.LPUTF8Str)]string value);
 
         [DllImport("MaaCore.dll")]
+        public static extern unsafe bool AsstSetUserDir(byte* dirname);
+
+        [DllImport("MaaCore.dll")]
         public static extern unsafe bool AsstLoadResource(byte* dirname);
 
         [DllImport("MaaCore.dll")]
@@ -65,6 +68,9 @@ namespace MaaWpfGui.Services
 
         [DllImport("MaaCore.dll")]
         public static extern unsafe ulong AsstGetImage(AsstHandle handle, byte* buff, ulong buffSize);
+
+        [DllImport("MaaCore.dll")]
+        public static extern unsafe ulong AsstGetImageBgr(AsstHandle handle, byte* buff, ulong buffSize);
 
         [DllImport("MaaCore.dll")]
         public static extern ulong AsstGetNullSize();

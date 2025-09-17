@@ -1,9 +1,28 @@
 {
+    "Phantom@StartExplore@Roguelike@ChooseOper": {
+        "next": [
+            "Phantom@StartExplore@Roguelike@ChooseOperConfirm",
+            "Phantom@StartExplore@Roguelike@ChooseOperConfirmToGiveUp",
+            "Phantom@Roguelike@Abandon",
+            "Phantom@StartExplore@Roguelike@ChooseOperConfirm#next"
+        ]
+    },
+    "Phantom@StartExplore@Roguelike@RecruitOther": {
+        "template": "Phantom@Roguelike@Recruit.png"
+    },
+    "Phantom@StartExplore@Roguelike@RecruitWithoutButton": {},
     "Phantom@Roguelike@Abandon": {},
     "Phantom@Roguelike@CheckLevel": {
         "text": ["古堡笔记"]
     },
     "Phantom@Roguelike@ChooseDifficulty": {},
+    "Phantom@Roguelike@ChooseDifficultyEnter": {
+        "action": "ClickRect",
+        "specificRect": [1144, 472, 78, 24],
+        "postDelay": 800,
+        "template": "Phantom@Roguelike@StartExplore.png",
+        "roi": [1026, 470, 254, 248]
+    },
     "Phantom@Roguelike@ChooseOper": {
         "next": [
             "Phantom@Roguelike@ChooseOperConfirm",
@@ -135,7 +154,8 @@
         "next": [
             "Phantom@Roguelike@CloseInterview",
             "Phantom@Roguelike@StrategyChange",
-            "Phantom@Roguelike@DialogSkip"
+            "Phantom@Roguelike@DialogSkip",
+            "Phantom@Roguelike@NextLevel"
         ],
         "onErrorNext": ["Phantom@Roguelike@DialogTimeout", "Phantom@Roguelike@Stages#next"]
     },
@@ -148,12 +168,13 @@
     "Phantom@Roguelike@RecruitWithoutButton": {
         "next": [
             "Phantom@Roguelike@RecruitOther",
-            "Phantom@Roguelike@EnterAfterRecruit",
             "Phantom@Roguelike@TraderRandomShopping",
             "Phantom@Roguelike@StageTraderLeave",
             "Phantom@Roguelike@DropsFlag",
             "Phantom@Roguelike@ChooseOperFlag",
             "Phantom@Roguelike@StageEncounterGiveUpRecruitConfirm",
+            "Phantom@Roguelike@NextLevel",
+            "Phantom@Roguelike@NextLevel#next",
             "Phantom@Roguelike@RecruitWithoutButton"
         ]
     },
@@ -170,7 +191,8 @@
             "Phantom@Roguelike@LastReward-EnterPoint",
             "Phantom@Roguelike@RolesDefault",
             "Phantom@Roguelike@CloseCollection",
-            "Phantom@Roguelike@Stages#next"
+            "Phantom@Roguelike@NextLevel",
+            "Phantom@Roguelike@NextLevel#next"
         ]
     },
     "Phantom@Roguelike@SquadDefault": {},
@@ -222,13 +244,15 @@
         "exceededNext": ["Phantom@Roguelike@ExitThenAbandon"]
     },
     "Phantom@Roguelike@Stages": {
-        "baseTask": "Phantom@Roguelike@Stages_default"
+        "baseTask": "Phantom@Roguelike@Stages_default",
+        "onErrorNext": ["Phantom@Roguelike@ExitThenAbandon"]
     },
     "Phantom@Roguelike@Stages_aggressive": {
         "Doc": "优先紧急作战,1-3层",
         "algorithm": "JustReturn",
         "next": [
             "Phantom@Roguelike@NextLevel",
+            "Phantom@Roguelike@CloseInterview",
             "Phantom@Roguelike@DialogSkip",
             "Phantom@Roguelike@DialogTimeout",
             "Phantom@Roguelike@StageEmergencyDps",
@@ -238,13 +262,15 @@
             "Phantom@Roguelike@StageTrader",
             "Phantom@Roguelike@StageSafeHouse",
             "Phantom@Roguelike@StageDreadfulFoe"
-        ]
+        ],
+        "onErrorNext": ["Phantom@Roguelike@ExitThenAbandon"]
     },
     "Phantom@Roguelike@Stages_default": {
         "Doc": "avoid battle,其他模式和6层策略",
         "algorithm": "JustReturn",
         "next": [
             "Phantom@Roguelike@NextLevel",
+            "Phantom@Roguelike@CloseInterview",
             "Phantom@Roguelike@DialogSkip",
             "Phantom@Roguelike@DialogTimeout",
             "Phantom@Roguelike@StageTrader",
@@ -254,13 +280,15 @@
             "Phantom@Roguelike@StageCombatDps",
             "Phantom@Roguelike@StageEmergencyDps",
             "Phantom@Roguelike@StageDreadfulFoe"
-        ]
+        ],
+        "onErrorNext": ["Phantom@Roguelike@ExitThenAbandon"]
     },
     "Phantom@Roguelike@Stages_pragmatic": {
         "Doc": "避紧急作战,4-5层策略",
         "algorithm": "JustReturn",
         "next": [
             "Phantom@Roguelike@NextLevel",
+            "Phantom@Roguelike@CloseInterview",
             "Phantom@Roguelike@DialogSkip",
             "Phantom@Roguelike@DialogTimeout",
             "Phantom@Roguelike@StageCombatDps",
@@ -270,7 +298,8 @@
             "Phantom@Roguelike@StageSafeHouse",
             "Phantom@Roguelike@StageEmergencyDps",
             "Phantom@Roguelike@StageDreadfulFoe"
-        ]
+        ],
+        "onErrorNext": ["Phantom@Roguelike@ExitThenAbandon"]
     },
     "Phantom@Roguelike@StartExplore": {},
     "Phantom@Roguelike@StartExplore-EnterCheck": {
@@ -288,8 +317,16 @@
         ]
     },
     "Phantom@Roguelike@StrategyChange_mode1": {
-        "baseTask": "Phantom@Roguelike@StrategyChange_mode4",
-        "Doc": "刷源石锭第二层就会退，这里借用第三层退的刷开局策略"
+        "Doc": "一层可能不开门，导致打完二层才退；不再复用mode4",
+        "text": ["_default", "_exit"],
+        "ocrReplace": [
+            ["迷雾歧途", "_default"],
+            ["落阳庭院", "_exit"],
+            ["故土残躯", "_exit"],
+            ["噩梦之始", "_exit"],
+            ["血月长廊", "_exit"],
+            ["渴欲大厅", "_exit"]
+        ]
     },
     "Phantom@Roguelike@StrategyChange_mode4": {
         "text": ["_default", "_exit"],

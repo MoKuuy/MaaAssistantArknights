@@ -16,6 +16,7 @@ public:
     static constexpr std::string_view Mizuki = "Mizuki";
     static constexpr std::string_view Sami = "Sami";
     static constexpr std::string_view Sarkaz = "Sarkaz";
+    static constexpr std::string_view JieGarden = "JieGarden";
 };
 
 enum class RoguelikeMode
@@ -47,6 +48,7 @@ struct RoguelikeStatus
 public:
     RoguelikeStatus() = default;
     RoguelikeStatus(const RoguelikeStatus&) = delete;
+    RoguelikeStatus& operator=(const RoguelikeStatus&) = default;
 
 public:
     int hope = 0;                                         // 当前希望
@@ -71,6 +73,9 @@ public:
     int idea_count = 0;         // 构想数量
     int burden_number = 0;      // 负荷
     int burden_upper_limit = 3; // 负荷上限
+
+    // ------------------ 界园 ------------------
+    int ticket_count = 0; // 票券数量
 };
 
 class RoguelikeConfig
@@ -79,7 +84,7 @@ public:
     static constexpr bool is_valid_theme(std::string_view theme)
     {
         return theme == RoguelikeTheme::Phantom || theme == RoguelikeTheme::Mizuki || theme == RoguelikeTheme::Sami ||
-               theme == RoguelikeTheme::Sarkaz;
+               theme == RoguelikeTheme::Sarkaz || theme == RoguelikeTheme::JieGarden;
     }
 
     static constexpr bool is_valid_mode(RoguelikeMode mode, std::string_view theme = RoguelikeTheme::Sami)

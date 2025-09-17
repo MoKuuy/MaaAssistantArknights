@@ -26,22 +26,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           show-progress: false
+
+      - name: Cache Primes
+        id: cache-primes
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-cache
 
       - name: Check dead links
         uses: lycheeverse/lychee-action@v2
         with:
-          # 仅检查内部链接和 Github 相关链接
+          # 仅检查内部链接，排除所有外部链接
           args: >
-            --verbose --no-progress --cache --max-cache-age 1d
+            --verbose --no-progress
+            --cache --max-cache-age 1d --cache-exclude-status '429, 500..599'
             --exclude 'https?://.*'
-            --include 'https?://github\.com/.*'
-            --include 'https?://raw\.githubusercontent\.com/.*'
-            --include 'https?://user-images\.githubusercontent\.com/.*'
             --exclude-path 'docs/zh-tw/manual/introduction/introduction_old.md'
             --exclude-path 'docs/ja-jp/manual/introduction/introduction_old.md'
             --exclude 'files/MAA_Runtime_Fix_Pwsh.ps1$'
