@@ -18,9 +18,7 @@ export function AnimatedBlobs() {
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
           >
-            <div
-              className={clsx('h-[20rem] w-[20rem] rounded-full', blob[0])}
-            ></div>
+            <div className={clsx('h-[20rem] w-[20rem] rounded-full', blob[0])}></div>
           </motion.div>
         </div>
       ))}

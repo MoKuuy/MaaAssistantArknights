@@ -19,10 +19,10 @@ export const PLATFORMS: PlatformPredicate[] = [
   {
     id: 'windows-x64',
     icon: mdiWindows,
-    title: 'platforms.windows-x64.title',
-    subtitle: 'platforms.windows-x64.subtitle',
+    title: 'Windows',
+    subtitle: 'x64',
     messages: {
-      downloaded: 'platforms.windows-x64.messages.downloaded',
+      downloaded: '下载完成，解压后运行 MAA.exe 即可',
     },
     assetMatcher: (release) => {
       return release.assets.find((el) => /^MAA-v.*-win-x64\.zip/.test(el.name))
@@ -31,10 +31,10 @@ export const PLATFORMS: PlatformPredicate[] = [
   {
     id: 'windows-arm64',
     icon: mdiWindows,
-    title: 'platforms.windows-arm64.title',
-    subtitle: 'platforms.windows-arm64.subtitle',
+    title: 'Windows',
+    subtitle: 'arm64',
     messages: {
-      downloaded: 'platforms.windows-arm64.messages.downloaded',
+      downloaded: '下载完成，解压后运行 MAA.exe 即可',
     },
     assetMatcher: (release) => {
       return release.assets.find((el) =>
@@ -45,10 +45,10 @@ export const PLATFORMS: PlatformPredicate[] = [
   {
     id: 'macos-universal',
     icon: mdiApple,
-    title: 'platforms.macos-universal.title',
-    subtitle: 'platforms.macos-universal.subtitle',
+    title: 'macOS',
+    subtitle: '通用',
     messages: {
-      downloaded: 'platforms.macos-universal.messages.downloaded',
+      downloaded: '下载完成，打开磁盘映像后将 MAA.app 拖入应用程序文件夹即可',
     },
     assetMatcher: (release) => {
       return release.assets.find((el) =>
@@ -59,10 +59,10 @@ export const PLATFORMS: PlatformPredicate[] = [
   {
     id: 'linux-x64',
     icon: mdiLinux,
-    title: 'platforms.linux-x64.title',
-    subtitle: 'platforms.linux-x64.subtitle',
+    title: 'Linux',
+    subtitle: 'x64 动态库',
     messages: {
-      downloaded: 'platforms.linux-x64.messages.downloaded',
+      downloaded: '动态库与资源文件下载完成 (Linux 版本暂无 GUI)',
     },
     assetMatcher: (release) => {
       return release.assets.find((el) =>
@@ -73,10 +73,10 @@ export const PLATFORMS: PlatformPredicate[] = [
   {
     id: 'linux-aarch64',
     icon: mdiLinux,
-    title: 'platforms.linux-aarch64.title',
-    subtitle: 'platforms.linux-aarch64.subtitle',
+    title: 'Linux',
+    subtitle: 'aarch64 动态库',
     messages: {
-      downloaded: 'platforms.linux-aarch64.messages.downloaded',
+      downloaded: '动态库与资源文件下载完成 (Linux 版本暂无 GUI)',
     },
     assetMatcher: (release) => {
       return release.assets.find((el) =>
